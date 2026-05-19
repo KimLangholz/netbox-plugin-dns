@@ -10,7 +10,6 @@ def remove_object_changes(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("netbox_dns", "0008_view_prefixes"),
     ]

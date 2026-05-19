@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("netbox_dns", "0018_zone_domain_status_zone_expiration_date"),
     ]

@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("extras", "0115_convert_dashboard_widgets"),
         ("netbox_dns", "0005_alter_zone_view_not_null"),

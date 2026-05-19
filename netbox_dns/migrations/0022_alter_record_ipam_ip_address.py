@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("ipam", "0081_remove_service_device_virtual_machine_add_parent_gfk_index"),
         ("netbox_dns", "0021_alter_record_ptr_record"),

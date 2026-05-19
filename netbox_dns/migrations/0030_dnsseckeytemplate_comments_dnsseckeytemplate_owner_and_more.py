@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("netbox_dns", "0029_alter_registrationcontact_street"),
         ("users", "0015_owner"),

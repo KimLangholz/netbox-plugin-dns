@@ -125,9 +125,9 @@ class ZoneTemplateViewTestCase(
 
         cls.csv_data = (
             "name,nameservers,soa_rname,soa_mname,record_templates,registrar,registrant,admin_c,tech_c,billing_c,dnssec_policy,parental_agents",
-            f"Zone Template 5,\"{','.join(nameserver.name for nameserver in nameservers[0:1])}\",hostmaster.example.com,{nameservers[0].name},\"{','.join(record_template.name for record_template in record_templates[0:1])}\",{registrars[0].name},{contacts[0].contact_id},{contacts[1].contact_id},{contacts[2].contact_id},{contacts[3].contact_id},,",
-            f"Zone Template 6,\"{','.join(nameserver.name for nameserver in nameservers[1:2])}\",,{nameservers[1].name},,{registrars[1].name},{contacts[2].contact_id},{contacts[3].contact_id},{contacts[0].contact_id},{contacts[1].contact_id},{dnssec_policies[2].name},\"2001:db8:42::23,2001:db8:23::23\"",
-            f"Zone Template 7,\"{','.join(nameserver.name for nameserver in nameservers[0:1])}\",hostmaster.example.com,,,{registrars[0].name},{contacts[3].contact_id},{contacts[2].contact_id},{contacts[1].contact_id},{contacts[3].contact_id},{dnssec_policies[1].name},\"2001:db8:42::42,2001:db8:23::42\"",
+            f'Zone Template 5,"{",".join(nameserver.name for nameserver in nameservers[0:1])}",hostmaster.example.com,{nameservers[0].name},"{",".join(record_template.name for record_template in record_templates[0:1])}",{registrars[0].name},{contacts[0].contact_id},{contacts[1].contact_id},{contacts[2].contact_id},{contacts[3].contact_id},,',
+            f'Zone Template 6,"{",".join(nameserver.name for nameserver in nameservers[1:2])}",,{nameservers[1].name},,{registrars[1].name},{contacts[2].contact_id},{contacts[3].contact_id},{contacts[0].contact_id},{contacts[1].contact_id},{dnssec_policies[2].name},"2001:db8:42::23,2001:db8:23::23"',
+            f'Zone Template 7,"{",".join(nameserver.name for nameserver in nameservers[0:1])}",hostmaster.example.com,,,{registrars[0].name},{contacts[3].contact_id},{contacts[2].contact_id},{contacts[1].contact_id},{contacts[3].contact_id},{dnssec_policies[1].name},"2001:db8:42::42,2001:db8:23::42"',
             f"Zone Template 8,,,,,{registrars[1].name},{contacts[0].contact_id},,{contacts[2].contact_id},,,",
         )
 

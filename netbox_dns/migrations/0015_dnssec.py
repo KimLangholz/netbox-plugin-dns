@@ -8,7 +8,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("extras", "0122_charfield_null_choices"),
         ("netbox_dns", "0014_alter_unique_constraints_lowercase"),

@@ -867,7 +867,7 @@ class RecordValidationTestCase(TestCase):
             Record(
                 name="name3",
                 zone=zone,
-                value=f"\"{255*'x'}\"",
+                value=f'"{255 * "x"}"',
             ),
             Record(
                 name="name4",
@@ -900,12 +900,12 @@ class RecordValidationTestCase(TestCase):
             Record(
                 name="name2",
                 zone=zone,
-                value=f"\"{64*'test '}\"",
+                value=f'"{64 * "test "}"',
             ),
             Record(
                 name="name3",
                 zone=zone,
-                value=f"\"{512*'x'}\"",
+                value=f'"{512 * "x"}"',
             ),
             Record(
                 name="name4",

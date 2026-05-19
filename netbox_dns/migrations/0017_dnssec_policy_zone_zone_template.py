@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("netbox_dns", "0016_dnssec_policy_status"),
     ]

@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("netbox_dns", "0019_dnssecpolicy_parental_agents"),
     ]

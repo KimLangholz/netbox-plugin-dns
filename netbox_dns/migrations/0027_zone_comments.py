@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("netbox_dns", "0026_alter_dnssecpolicy_nsec3_opt_out"),
     ]

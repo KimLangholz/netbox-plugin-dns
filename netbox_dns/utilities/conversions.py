@@ -44,7 +44,7 @@ def arpa_to_prefix(arpa_name):
 
         try:
             return IPNetwork(
-                f"{':'.join([(address[i:i+4]) for i in range(0, 32, 4)])}/{mask*4}"
+                f"{':'.join([(address[i : i + 4]) for i in range(0, 32, 4)])}/{mask * 4}"
             )
         except AddrFormatError:
             return None

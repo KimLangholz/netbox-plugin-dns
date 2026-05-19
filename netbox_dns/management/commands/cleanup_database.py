@@ -30,7 +30,7 @@ class Command(BaseCommand):
 
         for zone in Zone.objects.all():
             nameservers = zone.nameservers.all()
-            nameserver_names = [f'{ns.name.rstrip(".")}.' for ns in nameservers]
+            nameserver_names = [f"{ns.name.rstrip('.')}." for ns in nameservers]
 
             delete_ns = zone.records.filter(
                 name=ns_name, type=RecordTypeChoices.NS

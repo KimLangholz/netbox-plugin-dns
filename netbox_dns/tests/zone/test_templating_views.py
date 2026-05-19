@@ -1077,7 +1077,7 @@ class ZoneTemplatingViewTestCase(ModelViewTestCase):
             name="www",
             type=RecordTypeChoices.AAAA,
             value="fe80:dead:beef::42:23",
-        ),
+        )
 
         self.assertEqual(zone.records.count(), 2)  # SOA record + existing record
 
