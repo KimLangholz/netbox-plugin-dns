@@ -1,14 +1,13 @@
 from datetime import date
 
-from utilities.testing import ViewTestCases, create_tags
-
-from netbox_dns.tests.custom import ModelViewTestCase
-from netbox_dns.models import NameServer, View, Zone, Record, Registrar
 from netbox_dns.choices import (
-    ZoneStatusChoices,
-    ZoneEPPStatusChoices,
     RecordTypeChoices,
+    ZoneEPPStatusChoices,
+    ZoneStatusChoices,
 )
+from netbox_dns.models import NameServer, Record, Registrar, View, Zone
+from netbox_dns.tests.custom import ModelViewTestCase
+from utilities.testing import ViewTestCases, create_tags
 
 
 class ZoneViewTestCase(

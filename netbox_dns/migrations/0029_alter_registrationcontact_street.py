@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("netbox_dns", "0028_alter_zone_default_ttl_alter_zone_soa_minimum_and_more"),
     ]

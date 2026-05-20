@@ -1,24 +1,22 @@
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.db.models.signals import m2m_changed, post_save, pre_delete, pre_save
+from django.dispatch import receiver
+from django.utils.translation import gettext as _
 from netaddr import IPNetwork
 
-from django.conf import settings
-from django.dispatch import receiver
-from django.db.models.signals import pre_delete, pre_save, post_save, m2m_changed
-from django.core.exceptions import ValidationError
-from django.utils.translation import gettext as _
-
+from ipam.models import IPAddress, Prefix
 from netbox.context import current_request
 from netbox.signals import post_clean
-from ipam.models import IPAddress, Prefix
-from utilities.exceptions import AbortRequest
-
 from netbox_dns.utilities import (
     check_dns_records,
     check_record_permission,
-    update_dns_records,
     delete_dns_records,
-    get_views_by_prefix,
     get_ip_addresses_by_prefix,
+    get_views_by_prefix,
+    update_dns_records,
 )
+from utilities.exceptions import AbortRequest
 
 DNSSYNC_CUSTOM_FIELDS = {
     "ipaddress_dns_disabled": False,
@@ -61,15 +59,13 @@ def ipam_dnssync_ipaddress_post_clean(instance, **kwargs):
     if ENFORCE_UNIQUE_RECORDS and instance.status in IPADDRESS_ACTIVE_STATUS:
         for ip_address in duplicate_addresses.only("custom_field_data"):
             if not ip_address.custom_field_data.get("ipaddress_dns_disabled"):
-                raise ValidationError(
-                    {
-                        "dns_name": _(
-                            "Unique DNS records are enforced and there is already "
-                            "an active IP address {address} with DNS name {name}. Please choose "
-                            "a different name or disable record creation for this IP address."
-                        ).format(address=instance.address, name=instance.dns_name)
-                    }
-                )
+                raise ValidationError({
+                    "dns_name": _(
+                        "Unique DNS records are enforced and there is already "
+                        "an active IP address {address} with DNS name {name}. Please choose "
+                        "a different name or disable record creation for this IP address."
+                    ).format(address=instance.address, name=instance.dns_name)
+                })
 
     # +
     # Check NetBox DNS record permission for changes to IPAddress custom fields
@@ -179,8 +175,8 @@ def ipam_dnssync_prefix_pre_delete(instance, **kwargs):
                         "DNS View assignments for this and the parent prefix"
                     ).format(errors=exc.messages[0])
                 )
-            else:
-                raise exc
+
+            raise exc
 
     # +
     # CAUTION: This only works because the NetBox workaround for an ancient

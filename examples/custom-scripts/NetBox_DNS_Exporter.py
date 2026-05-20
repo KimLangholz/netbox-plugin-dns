@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
-from netbox_dns.models import View, Zone, Record
+from jinja2 import DictLoader, Environment
 
-from extras.scripts import Script, StringVar, BooleanVar
-from jinja2 import Environment, DictLoader
+from extras.scripts import BooleanVar, Script, StringVar
+from netbox_dns.models import Record, View, Zone
 
 
 def rm_tree(path):
@@ -22,10 +22,11 @@ name = "NetBox DNS Exporters"
 
 
 class ZoneExporter(Script):
-
     class Meta:
         name = "Zone Exporter"
-        description = "This custom script can be used to export zone data to the file system"
+        description = (
+            "This custom script can be used to export zone data to the file system"
+        )
         commit_default = True
 
     export_path = StringVar(
@@ -38,7 +39,7 @@ class ZoneExporter(Script):
         default=True,
     )
 
-    zone_template = '''\
+    zone_template = """\
 ;
 ; Zone file for zone {{ zone.name }} [{{ zone.view.name }}]
 ;
@@ -48,8 +49,10 @@ $TTL {{ zone.default_ttl }}
 {% for record in records -%}
 {{ record.name.ljust(32) }}    {{ (record.ttl|string if record.ttl is not none else '').ljust(8) }} IN {{ record.type.ljust(8) }}    {{ record.value }}
 {% endfor %}\
-'''
-    jinja_env = Environment(loader=DictLoader({"zone_file": zone_template}), autoescape=False)
+"""
+    jinja_env = Environment(
+        loader=DictLoader({"zone_file": zone_template}), autoescape=False
+    )
     template = jinja_env.get_template("zone_file")
 
     def run(self, data, commit):

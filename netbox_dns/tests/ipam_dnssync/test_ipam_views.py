@@ -1,26 +1,23 @@
-from netaddr import IPNetwork
-
+from django.core import management
 from django.test import override_settings
 from django.urls import reverse
-from django.core import management
+from netaddr import IPNetwork
 from rest_framework import status
 
-from ipam.models import IPAddress, Prefix, VRF
-from ipam.choices import IPAddressStatusChoices
-from extras.models import CustomField
-from extras.choices import CustomFieldTypeChoices
 from core.models import ObjectType
-
-from utilities.testing import post_data
-
-from netbox_dns.tests.custom import ModelViewTestCase
+from extras.choices import CustomFieldTypeChoices
+from extras.models import CustomField
+from ipam.choices import IPAddressStatusChoices
+from ipam.models import VRF, IPAddress, Prefix
+from netbox_dns.choices import RecordTypeChoices
 from netbox_dns.models import (
+    NameServer,
+    Record,
     View,
     Zone,
-    Record,
-    NameServer,
 )
-from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.tests.custom import ModelViewTestCase
+from utilities.testing import post_data
 
 
 class DNSsyncIPAMViewTestCase(ModelViewTestCase):

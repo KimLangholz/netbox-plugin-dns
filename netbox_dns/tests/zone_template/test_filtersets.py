@@ -1,18 +1,17 @@
 from django.test import TestCase
 
-from tenancy.models import Tenant, TenantGroup
-from utilities.testing import ChangeLoggedFilterSetTests
-
-from netbox_dns.models import (
-    ZoneTemplate,
-    RecordTemplate,
-    NameServer,
-    Registrar,
-    RegistrationContact,
-    DNSSECPolicy,
-)
 from netbox_dns.choices import RecordTypeChoices
 from netbox_dns.filtersets import ZoneTemplateFilterSet
+from netbox_dns.models import (
+    DNSSECPolicy,
+    NameServer,
+    RecordTemplate,
+    Registrar,
+    RegistrationContact,
+    ZoneTemplate,
+)
+from tenancy.models import Tenant, TenantGroup
+from utilities.testing import ChangeLoggedFilterSetTests
 
 
 class ZoneTemplateFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
@@ -170,19 +169,23 @@ class ZoneTemplateFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         )
         ZoneTemplate.objects.bulk_create(cls.zone_templates)
         for i in range(3):
-            cls.zone_templates[i].nameservers.set(
-                [cls.nameservers[0].pk, cls.nameservers[1].pk]
-            )
-            cls.zone_templates[i].record_templates.set(
-                [cls.record_templates[0].pk, cls.record_templates[1].pk]
-            )
+            cls.zone_templates[i].nameservers.set([
+                cls.nameservers[0].pk,
+                cls.nameservers[1].pk,
+            ])
+            cls.zone_templates[i].record_templates.set([
+                cls.record_templates[0].pk,
+                cls.record_templates[1].pk,
+            ])
         for i in range(3):
-            cls.zone_templates[3 + i].nameservers.set(
-                [cls.nameservers[1].pk, cls.nameservers[2].pk]
-            )
-            cls.zone_templates[3 + i].record_templates.set(
-                [cls.record_templates[1].pk, cls.record_templates[2].pk]
-            )
+            cls.zone_templates[3 + i].nameservers.set([
+                cls.nameservers[1].pk,
+                cls.nameservers[2].pk,
+            ])
+            cls.zone_templates[3 + i].record_templates.set([
+                cls.record_templates[1].pk,
+                cls.record_templates[2].pk,
+            ])
 
     def test_name(self):
         params = {"name": ["Zone Template 1", "Zone Template 3"]}

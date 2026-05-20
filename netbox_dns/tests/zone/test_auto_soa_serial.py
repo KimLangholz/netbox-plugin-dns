@@ -1,28 +1,27 @@
-from time import time
 from datetime import datetime, timedelta
 from math import ceil
+from time import time
+
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.test import TestCase, override_settings
 from dns import rdata
 
-from django.test import TestCase, override_settings
-from django.core.exceptions import ValidationError
-from django.conf import settings
-
-from tenancy.models import Tenant
-
-from netbox_dns.models import (
-    NameServer,
-    Record,
-    Zone,
-    Registrar,
-    RegistrationContact,
-    DNSSECPolicy,
-)
 from netbox_dns.choices import (
     RecordClassChoices,
     RecordTypeChoices,
-    ZoneStatusChoices,
     ZoneEPPStatusChoices,
+    ZoneStatusChoices,
 )
+from netbox_dns.models import (
+    DNSSECPolicy,
+    NameServer,
+    Record,
+    Registrar,
+    RegistrationContact,
+    Zone,
+)
+from tenancy.models import Tenant
 
 
 def set_soa_serial_back(zone):

@@ -1,59 +1,58 @@
 import re
+from datetime import date, datetime
 from math import ceil
-from datetime import datetime, date
 
-from dns import name as dns_name
-from dns.exception import DNSException
-from dns.rdtypes.ANY import SOA
-from django.core.validators import (
-    MinValueValidator,
-    MaxValueValidator,
-)
+from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.validators import (
+    MaxValueValidator,
+    MinValueValidator,
+)
 from django.db import models, transaction
-from django.db.models import Q, Max, ExpressionWrapper, BooleanField, UniqueConstraint
+from django.db.models import BooleanField, ExpressionWrapper, Max, Q, UniqueConstraint
 from django.db.models.functions import Length, Lower
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
-from django.conf import settings
-from django.contrib.postgres.fields import ArrayField
 from django.utils.translation import gettext_lazy as _
+from dns import name as dns_name
+from dns.exception import DNSException
+from dns.rdtypes.ANY import SOA
 
+from ipam.choices import IPAddressFamilyChoices
+from ipam.models import IPAddress
 from netbox.models import PrimaryModel
 from netbox.models.features import ContactsMixin
-from netbox.search import SearchIndex, register_search
 from netbox.plugins.utils import get_plugin_config
-from utilities.querysets import RestrictedQuerySet
-from ipam.models import IPAddress
-from ipam.choices import IPAddressFamilyChoices
-
+from netbox.search import SearchIndex, register_search
 from netbox_dns.choices import (
     RecordClassChoices,
     RecordTypeChoices,
-    ZoneStatusChoices,
     ZoneEPPStatusChoices,
+    ZoneStatusChoices,
 )
 from netbox_dns.fields import NetworkField, RFC2317NetworkField
+from netbox_dns.mixins import ObjectModificationMixin
 from netbox_dns.utilities import (
-    update_dns_records,
+    NameFormatError,
+    arpa_to_prefix,
     check_dns_records,
     get_ip_addresses_by_zone,
-    arpa_to_prefix,
+    get_parent_zone_names,
     name_to_unicode,
     normalize_name,
-    get_parent_zone_names,
     regex_from_list,
-    NameFormatError,
+    update_dns_records,
 )
 from netbox_dns.validators import (
-    validate_rname,
     validate_domain_name,
+    validate_rname,
 )
-from netbox_dns.mixins import ObjectModificationMixin
+from utilities.querysets import RestrictedQuerySet
 
+from .nameserver import NameServer
 from .record import Record
 from .view import View
-from .nameserver import NameServer
 
 __all__ = (
     "Zone",
@@ -443,7 +442,8 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             return None
 
         return (
-            self.view.zones.filter(arpa_network__net_contains=self.rfc2317_prefix)
+            self.view.zones
+            .filter(arpa_network__net_contains=self.rfc2317_prefix)
             .order_by("arpa_network__net_mask_length")
             .last()
         )
@@ -484,7 +484,8 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
     @property
     def ancestor_zones(self):
         return (
-            self.view.zones.annotate(name_length=Length("name"))
+            self.view.zones
+            .annotate(name_length=Length("name"))
             .filter(name__iregex=regex_from_list(get_parent_zone_names(self.name)))
             .order_by("name_length")
         )
@@ -500,7 +501,8 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         ]
 
         ns_records = (
-            self.records.filter(type=RecordTypeChoices.NS)
+            self.records
+            .filter(type=RecordTypeChoices.NS)
             .exclude(fqdn__iexact=self.fqdn)
             .filter(fqdn__iregex=regex_from_list(descendant_zone_names))
         )
@@ -624,6 +626,8 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
                 "Nameserver {ns} does not have an active address record in zone {zone}"
             ).format(ns=nameserver.name, zone=ns_zone)
 
+        return None
+
     def check_nameservers(self):
         nameservers = self.nameservers.all()
 
@@ -670,13 +674,11 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             return
 
         if (new_serial - old_serial) % SOA_SERIAL_WRAP > MAX_SOA_SERIAL_INCREMENT:
-            raise ValidationError(
-                {
-                    "soa_serial": _(
-                        "soa_serial must not decrease for zone {zone}."
-                    ).format(zone=self.name)
-                }
-            )
+            raise ValidationError({
+                "soa_serial": _("soa_serial must not decrease for zone {zone}.").format(
+                    zone=self.name
+                )
+            })
 
     def get_auto_serial(self):
         records = Record.objects.filter(zone_id=self.pk).exclude(
@@ -684,7 +686,8 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         )
         if records:
             soa_serial = (
-                records.aggregate(Max("last_updated"))
+                records
+                .aggregate(Max("last_updated"))
                 .get("last_updated__max")
                 .timestamp()
             )
@@ -792,21 +795,17 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
                 try:
                     self.soa_mname = NameServer.objects.get(name=default_soa_mname)
                 except NameServer.DoesNotExist:
-                    raise ValidationError(
-                        {
-                            "soa_mname": _(
-                                "Default soa_mname instance {nameserver} does not exist"
-                            ).format(nameserver=default_soa_mname)
-                        }
-                    )
-            else:
-                raise ValidationError(
-                    {
+                    raise ValidationError({
                         "soa_mname": _(
-                            "soa_mname not set and no template or default value defined"
-                        )
-                    }
-                )
+                            "Default soa_mname instance {nameserver} does not exist"
+                        ).format(nameserver=default_soa_mname)
+                    })
+            else:
+                raise ValidationError({
+                    "soa_mname": _(
+                        "soa_mname not set and no template or default value defined"
+                    )
+                })
 
         super().clean_fields(exclude=exclude)
 
@@ -829,48 +828,38 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         try:
             self.name = normalize_name(self.name)
         except NameFormatError as exc:
-            raise ValidationError(
-                {
-                    "name": str(exc),
-                }
-            )
+            raise ValidationError({
+                "name": str(exc),
+            })
 
         try:
             validate_domain_name(self.name, zone_name=True)
         except ValidationError as exc:
-            raise ValidationError(
-                {
-                    "name": exc,
-                }
-            )
+            raise ValidationError({
+                "name": exc,
+            })
 
         if self.soa_rname in (None, ""):
-            raise ValidationError(
-                {
-                    "soa_rname": _(
-                        "soa_rname not set and no template or default value defined"
-                    ),
-                }
-            )
+            raise ValidationError({
+                "soa_rname": _(
+                    "soa_rname not set and no template or default value defined"
+                ),
+            })
         try:
             dns_name.from_text(self.soa_rname, origin=dns_name.root)
             validate_rname(self.soa_rname)
         except (DNSException, ValidationError) as exc:
-            raise ValidationError(
-                {
-                    "soa_rname": exc,
-                }
-            )
+            raise ValidationError({
+                "soa_rname": exc,
+            })
 
         if not self.soa_serial_auto:
             if self.soa_serial is None:
-                raise ValidationError(
-                    {
-                        "soa_serial": _(
-                            "soa_serial is not defined and soa_serial_auto is disabled for zone {zone}."
-                        ).format(zone=self.name)
-                    }
-                )
+                raise ValidationError({
+                    "soa_serial": _(
+                        "soa_serial is not defined and soa_serial_auto is disabled for zone {zone}."
+                    ).format(zone=self.name)
+                })
 
         if not self._state.adding:
             old_soa_serial = self.get_saved_value("soa_serial")
@@ -884,13 +873,11 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
                         old_soa_serial, self.get_auto_serial()
                     )
                 except ValidationError:
-                    raise ValidationError(
-                        {
-                            "soa_serial_auto": _(
-                                "Enabling soa_serial_auto would decrease soa_serial for zone {zone}."
-                            ).format(zone=self.name)
-                        }
-                    )
+                    raise ValidationError({
+                        "soa_serial_auto": _(
+                            "Enabling soa_serial_auto would decrease soa_serial for zone {zone}."
+                        ).format(zone=self.name)
+                    })
 
             old_name = self.get_saved_value("name")
             old_view_id = self.get_saved_value("view_id")
@@ -922,25 +909,21 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
 
         if self.is_rfc2317_zone:
             if self.arpa_network is not None:
-                raise ValidationError(
-                    {
-                        "rfc2317_prefix": _(
-                            "A regular reverse zone can not be used as an RFC2317 zone."
-                        )
-                    }
-                )
+                raise ValidationError({
+                    "rfc2317_prefix": _(
+                        "A regular reverse zone can not be used as an RFC2317 zone."
+                    )
+                })
 
             if self.rfc2317_parent_managed:
                 rfc2317_parent_zone = self.get_rfc2317_parent_zone()
 
                 if rfc2317_parent_zone is None:
-                    raise ValidationError(
-                        {
-                            "rfc2317_parent_managed": _(
-                                "Parent zone not found in view {view}."
-                            ).format(view=self.view)
-                        }
-                    )
+                    raise ValidationError({
+                        "rfc2317_parent_managed": _(
+                            "Parent zone not found in view {view}."
+                        ).format(view=self.view)
+                    })
 
                 self.rfc2317_parent_zone = rfc2317_parent_zone
             else:
@@ -952,13 +935,11 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             ).exclude(pk=self.pk)
 
             if overlapping_zones.exists():
-                raise ValidationError(
-                    {
-                        "rfc2317_prefix": _(
-                            "RFC2317 prefix overlaps with zone {zone}."
-                        ).format(zone=overlapping_zones.first())
-                    }
-                )
+                raise ValidationError({
+                    "rfc2317_prefix": _(
+                        "RFC2317 prefix overlaps with zone {zone}."
+                    ).format(zone=overlapping_zones.first())
+                })
 
         else:
             self.rfc2317_parent_managed = False
@@ -1119,7 +1100,8 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             )
 
             ipam_ip_addresses = list(
-                IPAddress.objects.filter(
+                IPAddress.objects
+                .filter(
                     netbox_dns_records__in=self.records.filter(
                         ipam_ip_address__isnull=False
                     )

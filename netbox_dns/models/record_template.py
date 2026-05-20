@@ -1,16 +1,14 @@
 import dns
-from dns import name as dns_name
-
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.core.validators import MaxValueValidator
+from dns import name as dns_name
 
 from netbox.models import PrimaryModel
-from netbox.search import SearchIndex, register_search
 from netbox.plugins.utils import get_plugin_config
-
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices
+from netbox.search import SearchIndex, register_search
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
 from netbox_dns.validators import validate_generic_name, validate_record_value
 
 from .record import Record
@@ -123,11 +121,9 @@ class RecordTemplate(PrimaryModel):
                     ),
                 )
             except ValidationError as exc:
-                raise ValidationError(
-                    {
-                        "record_name": exc,
-                    }
-                )
+                raise ValidationError({
+                    "record_name": exc,
+                })
 
     def validate_value(self):
         try:
@@ -154,13 +150,11 @@ class RecordTemplate(PrimaryModel):
         try:
             record = Record.objects.create(**record_data)
         except ValidationError as exc:
-            raise ValidationError(
-                {
-                    None: _(
-                        "Error while processing record template {template}: {error}"
-                    ).format(template=self, error=exc.messages[0])
-                }
-            )
+            raise ValidationError({
+                None: _(
+                    "Error while processing record template {template}: {error}"
+                ).format(template=self, error=exc.messages[0])
+            })
 
         if tags := self.tags.all():
             record.tags.set(tags)

@@ -10,7 +10,7 @@ The NetBox DNS plugin enables NetBox to manage operational DNS data such as name
 <a href="https://github.com/sys4/netbox-plugin-dns/pulls"><img src="https://img.shields.io/github/issues-pr/sys4/netbox-plugin-dns" alt="Pull Requests Badge"/></a>
 <a href="https://github.com/sys4/netbox-plugin-dns/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/sys4/netbox-plugin-dns?color=2b9348"></a>
 <a href="https://github.com/sys4/netbox-plugin-dns/blob/master/LICENSE"><img src="https://img.shields.io/github/license/sys4/netbox-plugin-dns?color=2b9348" alt="License Badge"/></a>
-<a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code Style Black"/></a>
+<a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Code Style Ruff"/></a>
 <a href="https://pepy.tech/project/netbox-plugin-dns"><img alt="Downloads" src="https://static.pepy.tech/personalized-badge/netbox-plugin-dns?period=total&left_color=BLACK&right_color=BLUE&left_text=Downloads"></a>
 <a href="https://pepy.tech/project/netbox-plugin-dns"><img alt="Downloads/Week" src="https://static.pepy.tech/personalized-badge/netbox-plugin-dns?period=monthly&left_color=BLACK&right_color=BLUE&left_text=Downloads%2fMonth"></a>
 <a href="https://pepy.tech/project/netbox-plugin-dns"><img alt="Downloads/Month" src="https://static.pepy.tech/personalized-badge/netbox-plugin-dns?period=weekly&left_color=BLACK&right_color=BLUE&left_text=Downloads%2fWeek"></a>

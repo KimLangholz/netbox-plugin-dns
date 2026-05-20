@@ -1,18 +1,15 @@
-import netaddr
-
 import django_filters
+import netaddr
 from django.db.models import Q
 
-from netbox.filtersets import PrimaryModelFilterSet
-from tenancy.filtersets import TenancyFilterSet
-from utilities.filtersets import register_filterset
-from utilities.filters import MultiValueCharFilter
-
 from ipam.models import IPAddress
-
-from netbox_dns.models import View, Zone, Record
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices
+from netbox.filtersets import PrimaryModelFilterSet
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
 from netbox_dns.filters import TimePeriodFilter
+from netbox_dns.models import Record, View, Zone
+from tenancy.filtersets import TenancyFilterSet
+from utilities.filters import MultiValueCharFilter
+from utilities.filtersets import register_filterset
 
 __all__ = ("RecordFilterSet",)
 

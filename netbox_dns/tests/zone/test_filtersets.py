@@ -1,19 +1,17 @@
 from django.test import TestCase
 
-from tenancy.models import Tenant, TenantGroup
-from utilities.testing import ChangeLoggedFilterSetTests
-
+from netbox_dns.choices import ZoneEPPStatusChoices, ZoneStatusChoices
+from netbox_dns.filtersets import ZoneFilterSet
 from netbox_dns.models import (
-    Zone,
-    View,
+    DNSSECPolicy,
     NameServer,
     Registrar,
     RegistrationContact,
-    DNSSECPolicy,
+    View,
+    Zone,
 )
-from netbox_dns.choices import ZoneStatusChoices, ZoneEPPStatusChoices
-
-from netbox_dns.filtersets import ZoneFilterSet
+from tenancy.models import Tenant, TenantGroup
+from utilities.testing import ChangeLoggedFilterSetTests
 
 
 class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
@@ -305,9 +303,10 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         for i in range(3):
             cls.zones[i].nameservers.set([cls.nameservers[0].pk, cls.nameservers[1].pk])
         for i in range(3):
-            cls.zones[3 + i].nameservers.set(
-                [cls.nameservers[1].pk, cls.nameservers[2].pk]
-            )
+            cls.zones[3 + i].nameservers.set([
+                cls.nameservers[1].pk,
+                cls.nameservers[2].pk,
+            ])
 
     def test_name(self):
         params = {"name": ["zone1.example.com", "zone2.example.com"]}

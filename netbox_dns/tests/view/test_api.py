@@ -1,14 +1,13 @@
 from django.test import override_settings
 from rest_framework import status
 
-from utilities.testing import APIViewTestCases
-
+from netbox_dns.models import View
 from netbox_dns.tests.custom import (
     APITestCase,
-    NetBoxDNSGraphQLMixin,
     CustomFieldTargetAPIMixin,
+    NetBoxDNSGraphQLMixin,
 )
-from netbox_dns.models import View
+from utilities.testing import APIViewTestCases
 
 
 class ViewAPITestCase(

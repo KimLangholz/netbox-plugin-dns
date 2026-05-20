@@ -17,7 +17,6 @@ def set_disable_ptr_false(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("netbox_dns", "0022_alter_record_ipam_ip_address"),
     ]

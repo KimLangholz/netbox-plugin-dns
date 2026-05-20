@@ -3,11 +3,10 @@
 import dns
 from dns import name as dns_name
 
-from ipam.models import IPAddress, VRF
-from extras.scripts import Script, ObjectVar, BooleanVar
-
-from netbox_dns.models import Record, View, Zone
+from extras.scripts import BooleanVar, ObjectVar, Script
+from ipam.models import VRF, IPAddress
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import Record, View, Zone
 
 name = "NetBox DNS IPAM Import/Export"
 
@@ -51,7 +50,9 @@ class IPAMHostnameUpdater(Script):
                 record_type = RecordTypeChoices.AAAA
 
             try:
-                address_record = Record.objects.get(type=record_type, ip_address=ip_address.address.ip, **record_filter)
+                address_record = Record.objects.get(
+                    type=record_type, ip_address=ip_address.address.ip, **record_filter
+                )
                 hostname = address_record.fqdn.rstrip(".")
             except Record.DoesNotExist:
                 self.log_info(f"No address record found for {ip_address}")
@@ -62,7 +63,9 @@ class IPAMHostnameUpdater(Script):
 
             if hostname != ip_address.dns_name:
                 if not data["overwrite"]:
-                    self.log_info(f"Not overwriting exitsing value {ip_address.dns_name} with DNS name {hostname}")
+                    self.log_info(
+                        f"Not overwriting exitsing value {ip_address.dns_name} with DNS name {hostname}"
+                    )
                     continue
 
                 self.log_info(hostname)
@@ -102,9 +105,13 @@ class DNSRecordUpdater(Script):
 
     def run(self, data, commit):
         if data["vrf"] is None:
-            ip_addresses = IPAddress.objects.filter(vrf__isnull=True).exclude(dns_name="")
+            ip_addresses = IPAddress.objects.filter(vrf__isnull=True).exclude(
+                dns_name=""
+            )
         else:
-            ip_addresses = IPAddress.objects.filter(vrf=data["vrf"]).exclude(dns_name="")
+            ip_addresses = IPAddress.objects.filter(vrf=data["vrf"]).exclude(
+                dns_name=""
+            )
 
         for ip_address in ip_addresses:
             address = ip_address.address.ip
@@ -116,9 +123,13 @@ class DNSRecordUpdater(Script):
             zone = fqdn.parent()
 
             try:
-                zone_object = Zone.objects.get(name=str(zone).rstrip("."), view=data["view"])
+                zone_object = Zone.objects.get(
+                    name=str(zone).rstrip("."), view=data["view"]
+                )
             except Zone.DoesNotExist:
-                self.log_warning(f"Zone {zone} does not exist, cannot create or update record")
+                self.log_warning(
+                    f"Zone {zone} does not exist, cannot create or update record"
+                )
 
             name = fqdn.relativize(zone).to_text()
 
@@ -137,10 +148,14 @@ class DNSRecordUpdater(Script):
             try:
                 address_record = Record.objects.get(**record_filter)
             except Record.MultipleObjectsReturned:
-                self.log_warning(f"Multiple {record_type} records found for {ip_address}")
+                self.log_warning(
+                    f"Multiple {record_type} records found for {ip_address}"
+                )
                 continue
             except Record.DoesNotExist:
-                self.log_info(f"Creating a new {record_type} record {fqdn} for {ip_address}")
+                self.log_info(
+                    f"Creating a new {record_type} record {fqdn} for {ip_address}"
+                )
                 Record(
                     name=name,
                     zone=zone_object,
@@ -151,7 +166,9 @@ class DNSRecordUpdater(Script):
 
             if address_record.fqdn != str(fqdn):
                 if data["overwrite"]:
-                    self.log_info(f"Updating {record_type} record for {ip_address} with new name {fqdn}")
+                    self.log_info(
+                        f"Updating {record_type} record for {ip_address} with new name {fqdn}"
+                    )
                     if hasattr(address_record, "snapshot"):
                         address_record.snapshot()
 

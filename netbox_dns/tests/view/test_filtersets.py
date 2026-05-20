@@ -1,11 +1,10 @@
 from django.test import TestCase
 
-from tenancy.models import Tenant, TenantGroup
 from ipam.models import Prefix
-from utilities.testing import ChangeLoggedFilterSetTests
-
-from netbox_dns.models import View
 from netbox_dns.filtersets import ViewFilterSet
+from netbox_dns.models import View
+from tenancy.models import Tenant, TenantGroup
+from utilities.testing import ChangeLoggedFilterSetTests
 
 
 class ViewFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):

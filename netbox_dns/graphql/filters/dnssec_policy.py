@@ -1,4 +1,4 @@
-from typing import Annotated, TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
 import strawberry
 import strawberry_django
@@ -14,13 +14,14 @@ from tenancy.graphql.filter_mixins import ContactFilterMixin, TenancyFilterMixin
 
 if TYPE_CHECKING:
     from netbox.graphql.filter_lookups import IntegerLookup
-    from .enums import NetBoxDNSDNSSECPolicyStatusEnum
+
     from .dnssec_key_template import NetBoxDNSDNSSECKeyTemplateFilter
+    from .enums import NetBoxDNSDNSSECPolicyStatusEnum
     from .zone import NetBoxDNSZoneFilter
     from .zone_template import NetBoxDNSZoneTemplateFilter
 
-from netbox_dns.models import DNSSECPolicy
 from netbox_dns.graphql.filter_lookups import PolicyDigestArrayLookup
+from netbox_dns.models import DNSSECPolicy
 
 __all__ = ("NetBoxDNSDNSSECPolicyFilter", "PolicyDigestArrayLookup")
 

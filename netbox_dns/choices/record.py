@@ -1,9 +1,8 @@
-from dns import rdatatype, rdataclass
-
 from django.utils.translation import gettext_lazy as _
+from dns import rdataclass, rdatatype
 
-from utilities.choices import ChoiceSet
 from netbox.plugins.utils import get_plugin_config
+from utilities.choices import ChoiceSet
 
 from .utilities import initialize_choice_names
 
@@ -35,8 +34,7 @@ class RecordTypeNames:
         )
 
     def __iter__(self):
-        for rdtype_name in self.record_type_names:
-            yield rdtype_name
+        yield from self.record_type_names
 
 
 class RecordSelectableTypeNames:
@@ -52,8 +50,7 @@ class RecordSelectableTypeNames:
         )
 
     def __iter__(self):
-        for rdtype_name in self.record_type_names:
-            yield rdtype_name
+        yield from self.record_type_names
 
 
 class RecordClassNames:

@@ -1,20 +1,19 @@
 from django.urls import reverse
 from rest_framework import status
 
-from utilities.testing import APITestCase, create_tags
-from tenancy.models import Tenant
-
+from netbox_dns.choices import RecordTypeChoices
 from netbox_dns.models import (
+    DNSSECPolicy,
     NameServer,
+    Record,
+    RecordTemplate,
     Registrar,
     RegistrationContact,
-    RecordTemplate,
-    ZoneTemplate,
     Zone,
-    Record,
-    DNSSECPolicy,
+    ZoneTemplate,
 )
-from netbox_dns.choices import RecordTypeChoices
+from tenancy.models import Tenant
+from utilities.testing import APITestCase, create_tags
 
 
 class ZoneTemplatingAPITestCase(APITestCase):

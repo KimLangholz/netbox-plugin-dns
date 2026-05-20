@@ -1,20 +1,17 @@
 import re
-
 from collections import defaultdict
-
-from dns import name as dns_name
-from netaddr import IPNetwork
 
 from django.conf import settings
 from django.db.models import Q
+from dns import name as dns_name
+from netaddr import IPNetwork
 
-from netbox.context import current_request
 from ipam.models import IPAddress, Prefix
-
+from netbox.context import current_request
 from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
 
-from .dns import get_parent_zone_names
 from .conversions import regex_from_list
+from .dns import get_parent_zone_names
 
 __all__ = (
     "get_zones",
@@ -122,7 +119,7 @@ def get_zones(ip_address, view=None, old_zone=None):
 
 
 def check_dns_records(ip_address, zone=None, view=None):
-    from netbox_dns.models import Zone, Record
+    from netbox_dns.models import Record, Zone
 
     if ip_address.dns_name == "":
         return
@@ -167,7 +164,7 @@ def check_dns_records(ip_address, zone=None, view=None):
 
 
 def update_dns_records(ip_address, view=None, force=False):
-    from netbox_dns.models import Zone, Record
+    from netbox_dns.models import Record, Zone
 
     updated = False
 
@@ -330,11 +327,9 @@ def get_ip_addresses_by_zone(zone):
     are the IPAddress objects in prefixes assigned to the same view, if the
     'dns_name' attribute of the IPAddress object ends in the zone's name.
     """
-    queryset = get_ip_addresses_by_view(zone.view).filter(
+    return get_ip_addresses_by_view(zone.view).filter(
         dns_name__regex=rf"\.{re.escape(zone.name)}\.?$"
     )
-
-    return queryset
 
 
 def check_record_permission(add=True, change=True, delete=True):
@@ -386,5 +381,5 @@ def get_cidr_address(ip_address):
     # -
     if type(ip_address.address) is str:
         return IPNetwork(ip_address.address)
-    else:
-        return ip_address.address
+
+    return ip_address.address

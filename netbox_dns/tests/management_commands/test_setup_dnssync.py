@@ -1,9 +1,9 @@
-from django.test import TestCase
 from django.core import management
+from django.test import TestCase
 
 from core.models import ObjectType
-from extras.models import CustomField
 from extras.choices import CustomFieldTypeChoices
+from extras.models import CustomField
 from ipam.models import IPAddress
 
 

@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("extras", "0122_charfield_null_choices"),
         ("netbox_dns", "0013_zonetemplate_soa_mname_zonetemplate_soa_rname"),

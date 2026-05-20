@@ -1,8 +1,7 @@
 from django.core.management.base import BaseCommand
 
 from ipam.models import IPAddress
-
-from netbox_dns.utilities import update_dns_records, get_zones
+from netbox_dns.utilities import get_zones, update_dns_records
 
 
 class Command(BaseCommand):

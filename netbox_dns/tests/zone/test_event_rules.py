@@ -1,20 +1,17 @@
 import uuid
 
 import django_rq
-from django.urls import reverse
 from django.test import RequestFactory
+from django.urls import reverse
 from rest_framework import status
 
-from core.models import ObjectType
-from extras.models import EventRule, Tag, Webhook
-from extras.choices import EventRuleActionChoices
-
-from netbox.context_managers import event_tracking
 from core.events import OBJECT_CREATED, OBJECT_UPDATED
-
-from utilities.testing import APITestCase
-
+from core.models import ObjectType
+from extras.choices import EventRuleActionChoices
+from extras.models import EventRule, Tag, Webhook
+from netbox.context_managers import event_tracking
 from netbox_dns.models import NameServer, Zone
+from utilities.testing import APITestCase
 
 
 class ZoneEventRuleTest(APITestCase):

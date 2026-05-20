@@ -1,7 +1,13 @@
 from django.test import TestCase
 
-from utilities.testing import ChangeLoggedFilterSetTests
-
+from netbox_dns.choices import (
+    DNSSECKeyTemplateAlgorithmChoices,
+    DNSSECKeyTemplateKeySizeChoices,
+    DNSSECKeyTemplateTypeChoices,
+    DNSSECPolicyDigestChoices,
+    DNSSECPolicyStatusChoices,
+)
+from netbox_dns.filtersets import DNSSECPolicyFilterSet
 from netbox_dns.models import (
     DNSSECKeyTemplate,
     DNSSECPolicy,
@@ -9,14 +15,7 @@ from netbox_dns.models import (
     Zone,
     ZoneTemplate,
 )
-from netbox_dns.filtersets import DNSSECPolicyFilterSet
-from netbox_dns.choices import (
-    DNSSECKeyTemplateTypeChoices,
-    DNSSECKeyTemplateAlgorithmChoices,
-    DNSSECKeyTemplateKeySizeChoices,
-    DNSSECPolicyDigestChoices,
-    DNSSECPolicyStatusChoices,
-)
+from utilities.testing import ChangeLoggedFilterSetTests
 
 
 class DNSSECPolicyFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):

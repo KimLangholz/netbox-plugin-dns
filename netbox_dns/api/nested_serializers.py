@@ -2,9 +2,8 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from netbox.api.serializers import WritableNestedSerializer
-
-from netbox_dns.models import Zone, Record, ZoneTemplate, RecordTemplate, DNSSECPolicy
 from netbox_dns.api.serializers_.view import ViewSerializer
+from netbox_dns.models import DNSSECPolicy, Record, RecordTemplate, Zone, ZoneTemplate
 
 __all__ = (
     "NestedZoneSerializer",

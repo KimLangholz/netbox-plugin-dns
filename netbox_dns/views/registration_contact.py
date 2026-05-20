@@ -2,18 +2,16 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from netbox.views import generic
-
-from utilities.views import ViewTab, register_model_view
-
-from netbox_dns.models import RegistrationContact, Zone
 from netbox_dns.filtersets import RegistrationContactFilterSet, ZoneFilterSet
 from netbox_dns.forms import (
-    RegistrationContactForm,
-    RegistrationContactFilterForm,
-    RegistrationContactImportForm,
     RegistrationContactBulkEditForm,
+    RegistrationContactFilterForm,
+    RegistrationContactForm,
+    RegistrationContactImportForm,
 )
+from netbox_dns.models import RegistrationContact, Zone
 from netbox_dns.tables import RegistrationContactTable, ZoneTable
+from utilities.views import ViewTab, register_model_view
 
 __all__ = (
     "RegistrationContactView",

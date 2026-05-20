@@ -1,10 +1,9 @@
+from django.db.models import ProtectedError
+from django.test import TestCase
 from dns import rdata
 
-from django.test import TestCase
-from django.db.models import ProtectedError
-
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices, ZoneStatusChoices
 from netbox_dns.models import NameServer, Record, Zone
-from netbox_dns.choices import RecordTypeChoices, ZoneStatusChoices, RecordStatusChoices
 
 
 class ZoneAutoNSTestCase(TestCase):

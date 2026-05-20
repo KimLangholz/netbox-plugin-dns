@@ -12,6 +12,9 @@ readme = "README.md"
 keywords = ["netbox", "netbox-plugin", "dns"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
+    "Framework :: Django",
+    "Natural Language :: English",
+    "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -37,3 +40,34 @@ exclude = ["examples*", "*.tests*"]
 
 [tool.setuptools.package-data]
 "netbox_dns" = ["templates/**/*.html", "locale/**/*.mo"]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "W", "C", "RET", "UP", "I"]
+ignore = ["F403", "C901"]
+preview = true
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "account",
+    "circuits",
+    "core",
+    "dcim",
+    "extras",
+    "ipam",
+    "netbox",
+    "tenancy",
+    "users",
+    "utilities",
+    "virtualization",
+    "vpn",
+    "wireless",
+    "netbox_dns",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

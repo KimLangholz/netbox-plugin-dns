@@ -21,8 +21,7 @@ Include the following information in your post:
 * All new functionality must be accompanied by relevant tests where possible
 * All code submissions should meet the following criteria, which are automatically checked by the GitHub CI workflow:
     * Python syntax is valid
-    * `black` code formatting is enforced
-    * ruff code checking is enforced.
+    * `ruff` code formatting and checking is enforced
     * `/opt/netbox/venv/bin/manage.py test netbox_dns` must run successfully.
 * Include a reference to the fixed bug or feature request in the description of the pull request, e.g. `fixes #23`. See the [GitHub documentation](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/using-keywords-in-issues-and-pull-requests) for details
 * If the main branch has moved on while you were working on a pull request, please __do not merge but rebase__ your branch. Merging normally isn't usually necessary, and it creates merge commits that unnecessarily clutter the project's history
@@ -58,10 +57,10 @@ $ git remote add upstream https://github.com/peteeckel/netbox-plugin-dns.git
 $ source /opt/netbox/venv/bin/activate
 ```
 
-* Install the `black` code formatting utility:
+* Install the `ruff` code formatting and checking utility:
 
 ```bash
-$ pip3 install black
+$ pip3 install ruff
 ```
 
 * Install `netbox-plugin-dns`. In a development environment it makes most sense to use an editable installation, which can be achieved by the following commands (assuming you checked out the NetBox DNS repository to `/install-path/netbox-plugin-dns`):
@@ -89,10 +88,11 @@ After these steps are completed successfully, you're all set up.
 
 ## Code formatting and linting
 
-To achieve a consistent coding style, all code for the NetBox DNS plugin is formatted using the [`black` formatter](https://black.readthedocs.io/en/stable/index.html) and checked for inconsistencies such as unused imports and variables using the [`ruff` linter](https://docs.astral.sh/ruff/linter/).
+To achieve a consistent coding style and catch common errors such as unused imports and variables, all code for the NetBox DNS plugin is formatted and checked for inconsistencies such as unused imports and variables using the [`ruff`](https://docs.astral.sh/ruff/) utility.
 
 ```
-$ /opt/netbox/venv/bin/black netbox_dns
+$ /opt/netbox/venv/bin/ruff check
+$ /opt/netbox/venv/bin/ruff format
 ```
 
 ## Running the Tests
@@ -100,5 +100,5 @@ $ /opt/netbox/venv/bin/black netbox_dns
 Go to the NetBox directory and run
 
 ```bash
-$ /opt/netbox/netbox/manage.py test netbox_dns.tests
+$ NETBOX_CONFIGURATION=netbox_dns.tests.configuration /opt/netbox/netbox/manage.py test netbox_dns
 ```

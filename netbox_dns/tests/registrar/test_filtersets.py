@@ -1,9 +1,8 @@
 from django.test import TestCase
 
-from utilities.testing import ChangeLoggedFilterSetTests
-
-from netbox_dns.models import Registrar
 from netbox_dns.filtersets import RegistrarFilterSet
+from netbox_dns.models import Registrar
+from utilities.testing import ChangeLoggedFilterSetTests
 
 
 class RegistrarFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):

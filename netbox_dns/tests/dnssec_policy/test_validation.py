@@ -1,12 +1,12 @@
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.test import TestCase
-from django.core.exceptions import ValidationError
 
-from netbox_dns.models import DNSSECKeyTemplate, DNSSECPolicy
 from netbox_dns.choices import (
-    DNSSECKeyTemplateTypeChoices,
     DNSSECKeyTemplateAlgorithmChoices,
+    DNSSECKeyTemplateTypeChoices,
 )
+from netbox_dns.models import DNSSECKeyTemplate, DNSSECPolicy
 
 
 class DNSSECPolicyValidationTestCase(TestCase):

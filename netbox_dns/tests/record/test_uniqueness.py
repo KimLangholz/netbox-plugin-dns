@@ -1,8 +1,8 @@
-from django.test import TestCase, override_settings
 from django.core.exceptions import ValidationError
+from django.test import TestCase, override_settings
 
-from netbox_dns.models import Zone, Record, NameServer
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
+from netbox_dns.models import NameServer, Record, Zone
 
 
 class RecordUniquenessTestCase(TestCase):

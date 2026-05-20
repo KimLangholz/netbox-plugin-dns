@@ -1,19 +1,18 @@
-from utilities.testing import APIViewTestCases, create_tags
-
+from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import (
+    DNSSECPolicy,
+    NameServer,
+    RecordTemplate,
+    Registrar,
+    RegistrationContact,
+    ZoneTemplate,
+)
 from netbox_dns.tests.custom import (
     APITestCase,
-    NetBoxDNSGraphQLMixin,
     CustomFieldTargetAPIMixin,
+    NetBoxDNSGraphQLMixin,
 )
-from netbox_dns.models import (
-    ZoneTemplate,
-    RecordTemplate,
-    NameServer,
-    RegistrationContact,
-    Registrar,
-    DNSSECPolicy,
-)
-from netbox_dns.choices import RecordTypeChoices
+from utilities.testing import APIViewTestCases, create_tags
 
 
 class ZoneTemplateAPITestCase(

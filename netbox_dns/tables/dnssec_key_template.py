@@ -2,13 +2,12 @@ import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import (
-    PrimaryModelTable,
     ChoiceFieldColumn,
+    PrimaryModelTable,
     TagColumn,
 )
-from tenancy.tables import TenancyColumnsMixin
-
 from netbox_dns.models import DNSSECKeyTemplate
+from tenancy.tables import TenancyColumnsMixin
 
 __all__ = ("DNSSECKeyTemplateTable",)
 

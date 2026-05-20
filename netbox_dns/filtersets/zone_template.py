@@ -1,23 +1,20 @@
+import django_filters
 import netaddr
+from django.db.models import Q
 from netaddr.core import AddrFormatError
 
-import django_filters
-
-from django.db.models import Q
-
 from netbox.filtersets import PrimaryModelFilterSet
-from tenancy.filtersets import TenancyFilterSet
-from utilities.filters import MultiValueCharFilter
-from utilities.filtersets import register_filterset
-
 from netbox_dns.models import (
-    ZoneTemplate,
+    DNSSECPolicy,
+    NameServer,
     RecordTemplate,
     Registrar,
     RegistrationContact,
-    NameServer,
-    DNSSECPolicy,
+    ZoneTemplate,
 )
+from tenancy.filtersets import TenancyFilterSet
+from utilities.filters import MultiValueCharFilter
+from utilities.filtersets import register_filterset
 
 __all__ = ("ZoneTemplateFilterSet",)
 

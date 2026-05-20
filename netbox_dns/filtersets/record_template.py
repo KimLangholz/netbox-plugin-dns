@@ -2,12 +2,11 @@ import django_filters
 from django.db.models import Q
 
 from netbox.filtersets import PrimaryModelFilterSet
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
+from netbox_dns.filters import TimePeriodFilter
+from netbox_dns.models import RecordTemplate, ZoneTemplate
 from tenancy.filtersets import TenancyFilterSet
 from utilities.filtersets import register_filterset
-
-from netbox_dns.models import RecordTemplate, ZoneTemplate
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices
-from netbox_dns.filters import TimePeriodFilter
 
 __all__ = ("RecordTemplateFilterSet",)
 

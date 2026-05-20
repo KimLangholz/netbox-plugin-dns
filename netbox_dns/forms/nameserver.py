@@ -4,22 +4,20 @@ from django.utils.translation import gettext_lazy as _
 from netbox.forms import (
     PrimaryModelBulkEditForm,
     PrimaryModelFilterSetForm,
-    PrimaryModelImportForm,
     PrimaryModelForm,
+    PrimaryModelImportForm,
 )
-
+from netbox_dns.models import NameServer, Zone
+from netbox_dns.utilities import name_to_unicode
+from tenancy.forms import TenancyFilterForm, TenancyForm
+from tenancy.models import Tenant, TenantGroup
 from utilities.forms.fields import (
-    TagFilterField,
     CSVModelChoiceField,
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
+    TagFilterField,
 )
 from utilities.forms.rendering import FieldSet
-from tenancy.models import Tenant, TenantGroup
-from tenancy.forms import TenancyForm, TenancyFilterForm
-
-from netbox_dns.models import NameServer, Zone
-from netbox_dns.utilities import name_to_unicode
 
 __all__ = (
     "NameServerForm",

@@ -1,36 +1,36 @@
-from typing import Annotated, List
+from typing import Annotated
 
 import strawberry
 import strawberry_django
 
-from netbox.graphql.types import PrimaryObjectType
-from tenancy.graphql.types import TenantType
 from ipam.graphql.types import IPAddressType, PrefixType
 from netbox.graphql.scalars import BigInt
-
+from netbox.graphql.types import PrimaryObjectType
 from netbox_dns.models import (
-    NameServer,
-    View,
-    Zone,
-    Record,
     DNSSECKeyTemplate,
     DNSSECPolicy,
-    RegistrationContact,
-    Registrar,
-    ZoneTemplate,
+    NameServer,
+    Record,
     RecordTemplate,
+    Registrar,
+    RegistrationContact,
+    View,
+    Zone,
+    ZoneTemplate,
 )
+from tenancy.graphql.types import TenantType
+
 from .filters import (
-    NetBoxDNSNameServerFilter,
-    NetBoxDNSViewFilter,
-    NetBoxDNSZoneFilter,
-    NetBoxDNSRecordFilter,
     NetBoxDNSDNSSECKeyTemplateFilter,
     NetBoxDNSDNSSECPolicyFilter,
-    NetBoxDNSRegistrationContactFilter,
-    NetBoxDNSRegistrarFilter,
-    NetBoxDNSZoneTemplateFilter,
+    NetBoxDNSNameServerFilter,
+    NetBoxDNSRecordFilter,
     NetBoxDNSRecordTemplateFilter,
+    NetBoxDNSRegistrarFilter,
+    NetBoxDNSRegistrationContactFilter,
+    NetBoxDNSViewFilter,
+    NetBoxDNSZoneFilter,
+    NetBoxDNSZoneTemplateFilter,
 )
 
 
@@ -43,10 +43,10 @@ from .filters import (
 class NetBoxDNSNameServerType(PrimaryObjectType):
     name: str
     tenant: Annotated["TenantType", strawberry.lazy("tenancy.graphql.types")] | None
-    zones: List[
+    zones: list[
         Annotated["NetBoxDNSZoneType", strawberry.lazy("netbox_dns.graphql.types")]
     ]
-    soa_zones: List[
+    soa_zones: list[
         Annotated["NetBoxDNSZoneType", strawberry.lazy("netbox_dns.graphql.types")]
     ]
 
@@ -60,9 +60,9 @@ class NetBoxDNSNameServerType(PrimaryObjectType):
 class NetBoxDNSViewType(PrimaryObjectType):
     name: str
     tenant: Annotated["TenantType", strawberry.lazy("tenancy.graphql.types")] | None
-    prefixes: List[Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]]
+    prefixes: list[Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]]
     ip_address_filter: str | None
-    zones: List[
+    zones: list[
         Annotated["NetBoxDNSZoneType", strawberry.lazy("netbox_dns.graphql.types")]
     ]
 
@@ -78,7 +78,7 @@ class NetBoxDNSZoneType(PrimaryObjectType):
     status: str
     active: bool
     view: Annotated["NetBoxDNSViewType", strawberry.lazy("netbox_dns.graphql.types")]
-    nameservers: List[
+    nameservers: list[
         Annotated[
             "NetBoxDNSNameServerType", strawberry.lazy("netbox_dns.graphql.types")
         ]
@@ -102,7 +102,7 @@ class NetBoxDNSZoneType(PrimaryObjectType):
         | None
     )
     inline_signing: bool | None
-    parental_agents: List[str]
+    parental_agents: list[str]
     registrar: (
         Annotated["NetBoxDNSRegistrarType", strawberry.lazy("netbox_dns.graphql.types")]
         | None
@@ -142,10 +142,10 @@ class NetBoxDNSZoneType(PrimaryObjectType):
         Annotated["NetBoxDNSZoneType", strawberry.lazy("netbox_dns.graphql.types")]
         | None
     )
-    records: List[
+    records: list[
         Annotated["NetBoxDNSRecordType", strawberry.lazy("netbox_dns.graphql.types")]
     ]
-    rfc2317_child_zones: List[
+    rfc2317_child_zones: list[
         Annotated["NetBoxDNSRecordType", strawberry.lazy("netbox_dns.graphql.types")]
     ]
     arpa_network: str | None
@@ -181,10 +181,10 @@ class NetBoxDNSRecordType(PrimaryObjectType):
         Annotated["NetBoxDNSRecordType", strawberry.lazy("netbox_dns.graphql.types")]
         | None
     )
-    address_records: List[
+    address_records: list[
         Annotated["NetBoxDNSRecordType", strawberry.lazy("netbox_dns.graphql.types")]
     ]
-    rfc2317_ptr_records: List[
+    rfc2317_ptr_records: list[
         Annotated["NetBoxDNSRecordType", strawberry.lazy("netbox_dns.graphql.types")]
     ]
 
@@ -215,7 +215,7 @@ class NetBoxDNSDNSSECPolicyType(PrimaryObjectType):
     status: str
     tenant: Annotated["TenantType", strawberry.lazy("tenancy.graphql.types")] | None
     inline_signing: bool
-    key_templates: List[
+    key_templates: list[
         Annotated[
             "NetBoxDNSDNSSECKeyTemplateType",
             strawberry.lazy("netbox_dns.graphql.types"),
@@ -232,7 +232,7 @@ class NetBoxDNSDNSSECPolicyType(PrimaryObjectType):
     max_zone_ttl: BigInt | None
     zone_propagation_delay: BigInt | None
     create_cdnskey: bool
-    cds_digest_types: List[str]
+    cds_digest_types: list[str]
     parent_ds_ttl: BigInt | None
     parent_propagation_delay: BigInt | None
     use_nsec3: bool
@@ -261,16 +261,16 @@ class NetBoxDNSRegistrationContactType(PrimaryObjectType):
     fax: str
     fax_ext: str
     email: str
-    registrant_zones: List[
+    registrant_zones: list[
         Annotated["NetBoxDNSZoneType", strawberry.lazy("netbox_dns.graphql.types")]
     ]
-    admin_c_zones: List[
+    admin_c_zones: list[
         Annotated["NetBoxDNSZoneType", strawberry.lazy("netbox_dns.graphql.types")]
     ]
-    tech_c_zones: List[
+    tech_c_zones: list[
         Annotated["NetBoxDNSZoneType", strawberry.lazy("netbox_dns.graphql.types")]
     ]
-    billing_c_zones: List[
+    billing_c_zones: list[
         Annotated["NetBoxDNSZoneType", strawberry.lazy("netbox_dns.graphql.types")]
     ]
 
@@ -289,7 +289,7 @@ class NetBoxDNSRegistrarType(PrimaryObjectType):
     address: str
     abuse_email: str
     abuse_phone: str
-    zones: List[
+    zones: list[
         Annotated["NetBoxDNSZoneType", strawberry.lazy("netbox_dns.graphql.types")]
     ]
 
@@ -302,7 +302,7 @@ class NetBoxDNSRegistrarType(PrimaryObjectType):
 )
 class NetBoxDNSZoneTemplateType(PrimaryObjectType):
     name: str
-    nameservers: List[
+    nameservers: list[
         Annotated[
             "NetBoxDNSNameServerType", strawberry.lazy("netbox_dns.graphql.types")
         ]
@@ -320,8 +320,8 @@ class NetBoxDNSZoneTemplateType(PrimaryObjectType):
         ]
         | None
     )
-    parental_agents: List[str]
-    record_templates: List[
+    parental_agents: list[str]
+    record_templates: list[
         Annotated[
             "NetBoxDNSRecordTemplateType", strawberry.lazy("netbox_dns.graphql.types")
         ]
@@ -375,7 +375,7 @@ class NetBoxDNSRecordTemplateType(PrimaryObjectType):
     ttl: BigInt | None
     disable_ptr: bool
     tenant: Annotated["TenantType", strawberry.lazy("tenancy.graphql.types")] | None
-    zone_templates: List[
+    zone_templates: list[
         Annotated[
             "NetBoxDNSZoneTemplateType", strawberry.lazy("netbox_dns.graphql.types")
         ]

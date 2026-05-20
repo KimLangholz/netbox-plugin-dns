@@ -2,12 +2,11 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from netbox.api.serializers import PrimaryModelSerializer
+from netbox_dns.models import DNSSECKeyTemplate
 from tenancy.api.serializers_.tenants import TenantSerializer
 
-from netbox_dns.models import DNSSECKeyTemplate
-
-from ..nested_serializers import NestedDNSSECPolicySerializer
 from ..field_serializers import TimePeriodField
+from ..nested_serializers import NestedDNSSECPolicySerializer
 
 __all__ = ("DNSSECKeyTemplateSerializer",)
 

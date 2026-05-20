@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.db.models import Max, Min
 
-from netbox_dns.models import Record
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import Record
 
 
 class Command(BaseCommand):
@@ -29,7 +29,8 @@ class Command(BaseCommand):
             self.stdout.write("Cleaning up diverging RRset TTL values")
 
         ttl_records = (
-            Record.objects.filter(ttl__isnull=False)
+            Record.objects
+            .filter(ttl__isnull=False)
             .exclude(type=RecordTypeChoices.SOA)
             .exclude(type=RecordTypeChoices.PTR, managed=True)
         )

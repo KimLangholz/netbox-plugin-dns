@@ -1,10 +1,9 @@
 import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
-from netbox.tables import PrimaryModelTable, TagColumn, ActionsColumn
-from tenancy.tables import TenancyColumnsMixin
-
+from netbox.tables import ActionsColumn, PrimaryModelTable, TagColumn
 from netbox_dns.models import ZoneTemplate
+from tenancy.tables import TenancyColumnsMixin
 
 __all__ = (
     "ZoneTemplateTable",

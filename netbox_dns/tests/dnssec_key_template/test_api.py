@@ -1,19 +1,18 @@
 from django.urls import reverse
 from rest_framework import status
 
-from utilities.testing import APIViewTestCases
-
-from netbox_dns.tests.custom import (
-    APITestCase,
-    NetBoxDNSGraphQLMixin,
-    CustomFieldTargetAPIMixin,
-)
-from netbox_dns.models import DNSSECKeyTemplate
 from netbox_dns.choices import (
-    DNSSECKeyTemplateTypeChoices,
     DNSSECKeyTemplateAlgorithmChoices,
     DNSSECKeyTemplateKeySizeChoices,
+    DNSSECKeyTemplateTypeChoices,
 )
+from netbox_dns.models import DNSSECKeyTemplate
+from netbox_dns.tests.custom import (
+    APITestCase,
+    CustomFieldTargetAPIMixin,
+    NetBoxDNSGraphQLMixin,
+)
+from utilities.testing import APIViewTestCases
 
 
 class DNSSECKeyTemplateAPITestCase(

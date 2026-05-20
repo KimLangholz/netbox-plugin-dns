@@ -1,11 +1,11 @@
 import re
 import textwrap
 
-from django.test import TestCase, override_settings
 from django.core.exceptions import ValidationError
+from django.test import TestCase, override_settings
 
-from netbox_dns.models import Zone, Record, NameServer
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
+from netbox_dns.models import NameServer, Record, Zone
 
 
 def split_text_value(value):
@@ -867,7 +867,7 @@ class RecordValidationTestCase(TestCase):
             Record(
                 name="name3",
                 zone=zone,
-                value=f"\"{255*'x'}\"",
+                value=f'"{255 * "x"}"',
             ),
             Record(
                 name="name4",
@@ -900,12 +900,12 @@ class RecordValidationTestCase(TestCase):
             Record(
                 name="name2",
                 zone=zone,
-                value=f"\"{64*'test '}\"",
+                value=f'"{64 * "test "}"',
             ),
             Record(
                 name="name3",
                 zone=zone,
-                value=f"\"{512*'x'}\"",
+                value=f'"{512 * "x"}"',
             ),
             Record(
                 name="name4",

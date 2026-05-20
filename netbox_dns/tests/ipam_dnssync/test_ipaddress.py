@@ -1,20 +1,18 @@
 from copy import deepcopy
 
-from netaddr import IPNetwork
-
-from django.test import TestCase, override_settings
+from django.conf import settings
 from django.core import management
 from django.core.exceptions import ValidationError
-from django.conf import settings
+from django.test import TestCase, override_settings
+from netaddr import IPNetwork
 
-from ipam.models import IPAddress, Prefix
-from ipam.choices import IPAddressStatusChoices
-from extras.models import CustomField
-from extras.choices import CustomFieldTypeChoices
 from core.models import ObjectType
-
-from netbox_dns.models import View, Zone, NameServer, Record
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices
+from extras.choices import CustomFieldTypeChoices
+from extras.models import CustomField
+from ipam.choices import IPAddressStatusChoices
+from ipam.models import IPAddress, Prefix
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
+from netbox_dns.models import NameServer, Record, View, Zone
 
 zone_defaults = settings.PLUGINS_CONFIG.get("netbox_dns")
 

@@ -1,32 +1,31 @@
 from django import forms
-from django.utils.translation import gettext_lazy as _
 from django.contrib.postgres.forms import SimpleArrayField
+from django.utils.translation import gettext_lazy as _
 
 from netbox.forms import (
     PrimaryModelBulkEditForm,
     PrimaryModelFilterSetForm,
-    PrimaryModelImportForm,
     PrimaryModelForm,
+    PrimaryModelImportForm,
 )
+from netbox_dns.models import (
+    DNSSECPolicy,
+    NameServer,
+    RecordTemplate,
+    Registrar,
+    RegistrationContact,
+    ZoneTemplate,
+)
+from tenancy.forms import TenancyFilterForm, TenancyForm
+from tenancy.models import Tenant, TenantGroup
 from utilities.forms.fields import (
-    DynamicModelMultipleChoiceField,
-    TagFilterField,
     CSVModelChoiceField,
     CSVModelMultipleChoiceField,
     DynamicModelChoiceField,
+    DynamicModelMultipleChoiceField,
+    TagFilterField,
 )
 from utilities.forms.rendering import FieldSet
-from tenancy.models import Tenant, TenantGroup
-from tenancy.forms import TenancyForm, TenancyFilterForm
-
-from netbox_dns.models import (
-    ZoneTemplate,
-    RecordTemplate,
-    NameServer,
-    Registrar,
-    RegistrationContact,
-    DNSSECPolicy,
-)
 
 __all__ = (
     "ZoneTemplateForm",

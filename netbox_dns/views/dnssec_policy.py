@@ -1,18 +1,17 @@
 from django.utils.translation import gettext_lazy as _
 
 from netbox.views import generic
-from utilities.views import ViewTab, register_model_view
-
+from netbox_dns.choices import DNSSECKeyTemplateTypeChoices
 from netbox_dns.filtersets import (
     DNSSECPolicyFilterSet,
     ZoneFilterSet,
     ZoneTemplateFilterSet,
 )
 from netbox_dns.forms import (
-    DNSSECPolicyImportForm,
+    DNSSECPolicyBulkEditForm,
     DNSSECPolicyFilterForm,
     DNSSECPolicyForm,
-    DNSSECPolicyBulkEditForm,
+    DNSSECPolicyImportForm,
 )
 from netbox_dns.models import DNSSECPolicy, Zone, ZoneTemplate
 from netbox_dns.tables import (
@@ -21,7 +20,7 @@ from netbox_dns.tables import (
     ZoneTemplateDisplayTable,
 )
 from netbox_dns.validators import validate_key_template_lifetime
-from netbox_dns.choices import DNSSECKeyTemplateTypeChoices
+from utilities.views import ViewTab, register_model_view
 
 __all__ = (
     "DNSSECPolicyView",

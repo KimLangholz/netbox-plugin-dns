@@ -1,10 +1,9 @@
 import re
 
+from django.utils.dateparse import parse_duration
 from dns import name as dns_name
 from dns.exception import DNSException
-from netaddr import IPNetwork, AddrFormatError
-
-from django.utils.dateparse import parse_duration
+from netaddr import AddrFormatError, IPNetwork
 
 from netbox.plugins.utils import get_plugin_config
 
@@ -44,7 +43,7 @@ def arpa_to_prefix(arpa_name):
 
         try:
             return IPNetwork(
-                f"{':'.join([(address[i:i+4]) for i in range(0, 32, 4)])}/{mask*4}"
+                f"{':'.join([(address[i : i + 4]) for i in range(0, 32, 4)])}/{mask * 4}"
             )
         except AddrFormatError:
             return None
@@ -78,7 +77,8 @@ def normalize_name(name):
 
     try:
         return (
-            dns_name.from_text(name, origin=dns_name.root)
+            dns_name
+            .from_text(name, origin=dns_name.root)
             .relativize(dns_name.root)
             .to_text()
         )
@@ -91,10 +91,10 @@ def network_to_reverse(network):
     try:
         ip_network = IPNetwork(network)
     except AddrFormatError:
-        return
+        return None
 
     if ip_network.first == ip_network.last:
-        return
+        return None
 
     labels = None
     match ip_network.version:
@@ -105,10 +105,12 @@ def network_to_reverse(network):
             if not ip_network.prefixlen % 4:
                 labels = 3 + ip_network.prefixlen // 4
         case _:
-            return
+            return None
 
     if labels:
         return ".".join(ip_network[0].reverse_dns.split(".")[-labels:])
+
+    return None
 
 
 def regex_from_list(names):

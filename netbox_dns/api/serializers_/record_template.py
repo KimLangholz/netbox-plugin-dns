@@ -2,12 +2,11 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from netbox.api.serializers import PrimaryModelSerializer
+from netbox_dns.models import RecordTemplate
 from tenancy.api.serializers import TenantSerializer
 
-from netbox_dns.models import RecordTemplate
-
-from ..nested_serializers import NestedZoneTemplateSerializer
 from ..field_serializers import TimePeriodField
+from ..nested_serializers import NestedZoneTemplateSerializer
 
 __all__ = ("RecordTemplateSerializer",)
 

@@ -1,37 +1,35 @@
 import ipaddress
-import netaddr
 
 import dns
+import netaddr
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
+from django.db import models
+from django.db.models import BooleanField, ExpressionWrapper, Min, Q
+from django.utils.translation import gettext_lazy as _
 from dns import name as dns_name
 from dns import rdata
 
-from django.core.exceptions import ValidationError
-from django.db import models
-from django.db.models import Q, ExpressionWrapper, BooleanField, Min
-from django.conf import settings
-from django.utils.translation import gettext_lazy as _
-from django.core.validators import MaxValueValidator
-
 from netbox.models import PrimaryModel
 from netbox.models.features import ContactsMixin
-from netbox.search import SearchIndex, register_search
 from netbox.plugins.utils import get_plugin_config
-from utilities.querysets import RestrictedQuerySet
-
+from netbox.search import SearchIndex, register_search
+from netbox_dns.choices import (
+    RecordClassChoices,
+    RecordStatusChoices,
+    RecordTypeChoices,
+)
 from netbox_dns.fields import AddressField
+from netbox_dns.mixins import ObjectModificationMixin
 from netbox_dns.utilities import (
     arpa_to_prefix,
-    name_to_unicode,
     check_filter,
     get_cidr_address,
+    name_to_unicode,
 )
 from netbox_dns.validators import validate_generic_name, validate_record_value
-from netbox_dns.mixins import ObjectModificationMixin
-from netbox_dns.choices import (
-    RecordTypeChoices,
-    RecordStatusChoices,
-    RecordClassChoices,
-)
+from utilities.querysets import RestrictedQuerySet
 
 __all__ = (
     "Record",
@@ -64,7 +62,8 @@ def record_data_from_ip_address(ip_address, zone):
 
     data = {
         "name": (
-            dns_name.from_text(ip_address.dns_name)
+            dns_name
+            .from_text(ip_address.dns_name)
             .relativize(dns_name.from_text(zone.name))
             .to_text()
         ),
@@ -340,7 +339,8 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
     def ptr_zone(self):
         if self.type == RecordTypeChoices.A:
             ptr_zone = (
-                self.zone.view.zones.filter(
+                self.zone.view.zones
+                .filter(
                     rfc2317_prefix__net_contains=self.value,
                 )
                 .order_by("rfc2317_prefix__net_mask_length")
@@ -350,13 +350,12 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             if ptr_zone is not None:
                 return ptr_zone
 
-        ptr_zone = (
-            self.zone.view.zones.filter(arpa_network__net_contains=self.value)
+        return (
+            self.zone.view.zones
+            .filter(arpa_network__net_contains=self.value)
             .order_by("arpa_network__net_mask_length")
             .last()
         )
-
-        return ptr_zone
 
     @property
     def is_delegation_record(self):
@@ -436,7 +435,8 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             ptr_name = self.rfc2317_ptr_name
         else:
             ptr_name = (
-                dns_name.from_text(ipaddress.ip_address(self.value).reverse_pointer)
+                dns_name
+                .from_text(ipaddress.ip_address(self.value).reverse_pointer)
                 .relativize(dns_name.from_text(ptr_zone.name))
                 .to_text()
             )
@@ -558,9 +558,8 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
     def update_rfc2317_cname_record(self, save_zone_serial=True):
         if self.zone.rfc2317_parent_managed:
             cname_name = (
-                dns_name.from_text(
-                    ipaddress.ip_address(self.ip_address).reverse_pointer
-                )
+                dns_name
+                .from_text(ipaddress.ip_address(self.ip_address).reverse_pointer)
                 .relativize(dns_name.from_text(self.zone.rfc2317_parent_zone.name))
                 .to_text()
             )
@@ -570,9 +569,8 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
                     self.rfc2317_cname_record.zone = self.zone.rfc2317_parent_zone
                     self.rfc2317_cname_record.value = self.fqdn
                     self.rfc2317_cname_record.ttl = min_ttl(
-                        self.rfc2317_cname_record.rfc2317_ptr_records.exclude(
-                            pk=self.pk
-                        )
+                        self.rfc2317_cname_record.rfc2317_ptr_records
+                        .exclude(pk=self.pk)
                         .aggregate(Min("ttl"))
                         .get("ttl__min"),
                         self.ttl,
@@ -592,7 +590,8 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
 
             if rfc2317_cname_record is not None:
                 rfc2317_cname_record.ttl = min_ttl(
-                    rfc2317_cname_record.rfc2317_ptr_records.exclude(pk=self.pk)
+                    rfc2317_cname_record.rfc2317_ptr_records
+                    .exclude(pk=self.pk)
                     .aggregate(Min("ttl"))
                     .get("ttl__min"),
                     self.ttl,
@@ -638,7 +637,7 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         if data is None:
             return False, True
 
-        if all((getattr(self, attr) == data[attr] for attr in data.keys())):
+        if all(getattr(self, attr) == data[attr] for attr in data.keys()):
             return False, False
 
         for attr, value in data.items():
@@ -653,7 +652,7 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         data = record_data_from_ip_address(ip_address, zone)
 
         if data is None:
-            return
+            return None
 
         return Record(
             zone=zone,
@@ -673,13 +672,11 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         fqdn = dns_name.from_text(self.name, origin=_zone)
 
         if not fqdn.is_subdomain(_zone):
-            raise ValidationError(
-                {
-                    "name": _("{name} is not a name in {zone}").format(
-                        name=self.name, zone=zone.name
-                    ),
-                }
-            )
+            raise ValidationError({
+                "name": _("{name} is not a name in {zone}").format(
+                    name=self.name, zone=zone.name
+                ),
+            })
 
         _zone.to_unicode()
         name.to_unicode()
@@ -697,11 +694,9 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             self.update_fqdn(zone=new_zone)
 
         except dns.exception.DNSException as exc:
-            raise ValidationError(
-                {
-                    "name": str(exc),
-                }
-            )
+            raise ValidationError({
+                "name": str(exc),
+            })
 
         if self.type not in get_plugin_config(
             "netbox_dns", "tolerate_non_rfc1035_types", default=[]
@@ -719,11 +714,9 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
                     ),
                 )
             except ValidationError as exc:
-                raise ValidationError(
-                    {
-                        "name": exc,
-                    }
-                )
+                raise ValidationError({
+                    "name": exc,
+                })
 
         if get_plugin_config("netbox_dns", "enforce_zone_cut_checking"):
             try:
@@ -768,15 +761,13 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
                 ):
                     return
 
-            raise ValidationError(
-                {
-                    "value": _(
-                        "There is already an active {type} record for name {name} in zone {zone} with value {value}."
-                    ).format(
-                        type=self.type, name=self.name, zone=self.zone, value=self.value
-                    )
-                }
-            )
+            raise ValidationError({
+                "value": _(
+                    "There is already an active {type} record for name {name} in zone {zone} with value {value}."
+                ).format(
+                    type=self.type, name=self.name, zone=self.zone, value=self.value
+                )
+            })
 
     @property
     def absolute_value(self):
@@ -864,7 +855,8 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             return
 
         records = (
-            self.zone.records.filter(
+            self.zone.records
+            .filter(
                 name=self.name,
                 type=self.type,
             )
@@ -884,18 +876,16 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             self.ttl = conflicting_ttls.pop()
             return
 
-        raise ValidationError(
-            {
-                "ttl": _(
-                    "There is at least one active {type} record for name {name} in zone {zone} and TTL is different ({ttls})."
-                ).format(
-                    type=self.type,
-                    name=self.name,
-                    zone=self.zone,
-                    ttls=", ".join(str(ttl) for ttl in conflicting_ttls),
-                )
-            }
-        )
+        raise ValidationError({
+            "ttl": _(
+                "There is at least one active {type} record for name {name} in zone {zone} and TTL is different ({ttls})."
+            ).format(
+                type=self.type,
+                name=self.name,
+                zone=self.zone,
+                ttls=", ".join(str(ttl) for ttl in conflicting_ttls),
+            )
+        })
 
     check_unique_rrset_ttl.alters_data = True
 
@@ -913,7 +903,8 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             ttl = self.ttl
 
         records = (
-            self.zone.records.filter(
+            self.zone.records
+            .filter(
                 name=self.name,
                 type=self.type,
             )
@@ -971,7 +962,8 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
                 )
 
                 if (
-                    ptr_cname_zone.records.filter(
+                    ptr_cname_zone.records
+                    .filter(
                         name=ptr_cname_name,
                         active=True,
                     )
@@ -982,54 +974,44 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
                     .exclude(type=RecordTypeChoices.NSEC)
                     .exists()
                 ):
-                    raise ValidationError(
-                        {
-                            "value": _(
-                                "There is already an active record for name {name} in zone {zone}, RFC2317 CNAME is not allowed."
-                            ).format(name=ptr_cname_name, zone=ptr_cname_zone)
-                        }
-                    )
+                    raise ValidationError({
+                        "value": _(
+                            "There is already an active record for name {name} in zone {zone}, RFC2317 CNAME is not allowed."
+                        ).format(name=ptr_cname_name, zone=ptr_cname_zone)
+                    })
 
         if self.type == RecordTypeChoices.SOA and self.name != "@":
-            raise ValidationError(
-                {
-                    "name": _(
-                        "SOA records are only allowed with name @ and are created automatically by NetBox DNS"
-                    )
-                }
-            )
+            raise ValidationError({
+                "name": _(
+                    "SOA records are only allowed with name @ and are created automatically by NetBox DNS"
+                )
+            })
 
         if self.type == RecordTypeChoices.CNAME:
             if records.exclude(type=RecordTypeChoices.NSEC).exists():
-                raise ValidationError(
-                    {
-                        "type": _(
-                            "There is already an active record for name {name} in zone {zone}, CNAME is not allowed."
-                        ).format(name=self.name, zone=self.zone)
-                    }
-                )
+                raise ValidationError({
+                    "type": _(
+                        "There is already an active record for name {name} in zone {zone}, CNAME is not allowed."
+                    ).format(name=self.name, zone=self.zone)
+                })
 
         elif (
             records.filter(type=RecordTypeChoices.CNAME).exists()
             and self.type != RecordTypeChoices.NSEC
         ):
-            raise ValidationError(
-                {
-                    "type": _(
-                        "There is already an active CNAME record for name {name} in zone {zone}, no other record allowed."
-                    ).format(name=self.name, zone=self.zone)
-                }
-            )
+            raise ValidationError({
+                "type": _(
+                    "There is already an active CNAME record for name {name} in zone {zone}, no other record allowed."
+                ).format(name=self.name, zone=self.zone)
+            })
 
         elif self.type in RecordTypeChoices.SINGLETONS:
             if records.filter(type=self.type).exists():
-                raise ValidationError(
-                    {
-                        "type": _(
-                            "There is already an active {type} record for name {name} in zone {zone}, more than one are not allowed."
-                        ).format(type=self.type, name=self.name, zone=self.zone)
-                    }
-                )
+                raise ValidationError({
+                    "type": _(
+                        "There is already an active {type} record for name {name} in zone {zone}, more than one are not allowed."
+                    ).format(type=self.type, name=self.name, zone=self.zone)
+                })
 
         super().clean(*args, **kwargs)
 

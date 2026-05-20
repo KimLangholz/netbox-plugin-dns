@@ -1,5 +1,5 @@
-from django.forms import TextInput, IntegerField
 from django.core.exceptions import ValidationError
+from django.forms import IntegerField, TextInput
 
 from netbox_dns.utilities import iso8601_to_int
 

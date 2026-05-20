@@ -1,21 +1,20 @@
-from django.db import models
 from django.core.exceptions import ValidationError
+from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from netbox.context import current_request
 from netbox.models import PrimaryModel
 from netbox.models.features import ContactsMixin
 from netbox.search import SearchIndex, register_search
-from netbox.context import current_request
-from utilities.exceptions import AbortRequest
-
 from netbox_dns.mixins import ObjectModificationMixin
 from netbox_dns.utilities import (
-    get_ip_addresses_by_view,
     check_dns_records,
-    update_dns_records,
     delete_dns_records,
+    get_ip_addresses_by_view,
     get_query_from_filter,
+    update_dns_records,
 )
+from utilities.exceptions import AbortRequest
 
 __all__ = (
     "View",
@@ -82,13 +81,11 @@ class View(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             and not self.default_view
             and not View.objects.filter(default_view=True).exclude(pk=self.pk).exists()
         ):
-            raise ValidationError(
-                {
-                    "default_view": _(
-                        "Please select a different view as default view to change this setting!"
-                    )
-                }
-            )
+            raise ValidationError({
+                "default_view": _(
+                    "Please select a different view as default view to change this setting!"
+                )
+            })
 
         if "ip_address_filter" in changed_fields and self.get_saved_value(
             "ip_address_filter"
@@ -99,11 +96,9 @@ class View(ObjectModificationMixin, ContactsMixin, PrimaryModel):
                 ):
                     check_dns_records(ip_address, view=self)
             except ValidationError as exc:
-                raise ValidationError(
-                    {
-                        "ip_address_filter": exc.messages,
-                    }
-                )
+                raise ValidationError({
+                    "ip_address_filter": exc.messages,
+                })
 
         super().clean(*args, **kwargs)
 

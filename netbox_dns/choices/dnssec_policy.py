@@ -1,6 +1,5 @@
-from dns.dnssectypes import DSDigest
-
 from django.utils.translation import gettext_lazy as _
+from dns.dnssectypes import DSDigest
 
 from utilities.choices import ChoiceSet
 

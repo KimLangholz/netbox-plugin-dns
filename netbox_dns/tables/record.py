@@ -2,19 +2,17 @@ import django_tables2 as tables
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-
 from netbox.tables import (
-    PrimaryModelTable,
-    ChoiceFieldColumn,
-    TagColumn,
     ActionsColumn,
     BooleanColumn,
+    ChoiceFieldColumn,
+    PrimaryModelTable,
+    TagColumn,
     TemplateColumn,
 )
-from tenancy.tables import TenancyColumnsMixin
-
 from netbox_dns.models import Record
 from netbox_dns.utilities import value_to_unicode
+from tenancy.tables import TenancyColumnsMixin
 
 __all__ = (
     "RecordTable",
@@ -158,14 +156,15 @@ class ManagedRecordTable(RecordBaseTable):
     def value_related_ip_address(self, record):
         if record.ipam_ip_address is not None:
             return record.ipam_ip_address
-        elif hasattr(record, "address_records"):
+
+        if hasattr(record, "address_records"):
             address_record = record.address_records.filter(
                 ipam_ip_address__isnull=False
             ).first()
             if address_record is not None:
                 return address_record.ipam_ip_address
 
-            return None
+        return None
 
 
 class RelatedRecordTable(RecordBaseTable):

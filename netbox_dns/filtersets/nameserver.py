@@ -2,10 +2,9 @@ import django_filters
 from django.db.models import Q
 
 from netbox.filtersets import PrimaryModelFilterSet
+from netbox_dns.models import NameServer, Zone
 from tenancy.filtersets import TenancyFilterSet
 from utilities.filtersets import register_filterset
-
-from netbox_dns.models import NameServer, Zone
 
 __all__ = ("NameServerFilterSet",)
 

@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 
 from core.models import ObjectType
-from extras.models import CustomField
 from extras.choices import CustomFieldTypeChoices
+from extras.models import CustomField
 from ipam.models import IPAddress
 
 

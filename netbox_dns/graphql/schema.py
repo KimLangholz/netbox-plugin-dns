@@ -1,26 +1,24 @@
-from typing import List
-
 import strawberry
 import strawberry_django
 
 from .types import (
-    NetBoxDNSNameServerType,
-    NetBoxDNSViewType,
-    NetBoxDNSZoneType,
-    NetBoxDNSRecordType,
     NetBoxDNSDNSSECKeyTemplateType,
     NetBoxDNSDNSSECPolicyType,
-    NetBoxDNSRegistrationContactType,
-    NetBoxDNSRegistrarType,
-    NetBoxDNSZoneTemplateType,
+    NetBoxDNSNameServerType,
     NetBoxDNSRecordTemplateType,
+    NetBoxDNSRecordType,
+    NetBoxDNSRegistrarType,
+    NetBoxDNSRegistrationContactType,
+    NetBoxDNSViewType,
+    NetBoxDNSZoneTemplateType,
+    NetBoxDNSZoneType,
 )
 
 
 @strawberry.type(name="Query")
 class NetBoxDNSNameServerQuery:
     netbox_dns_nameserver: NetBoxDNSNameServerType = strawberry_django.field()
-    netbox_dns_nameserver_list: List[NetBoxDNSNameServerType] = (
+    netbox_dns_nameserver_list: list[NetBoxDNSNameServerType] = (
         strawberry_django.field()
     )
 
@@ -28,19 +26,19 @@ class NetBoxDNSNameServerQuery:
 @strawberry.type(name="Query")
 class NetBoxDNSViewQuery:
     netbox_dns_view: NetBoxDNSViewType = strawberry_django.field()
-    netbox_dns_view_list: List[NetBoxDNSViewType] = strawberry_django.field()
+    netbox_dns_view_list: list[NetBoxDNSViewType] = strawberry_django.field()
 
 
 @strawberry.type(name="Query")
 class NetBoxDNSZoneQuery:
     netbox_dns_zone: NetBoxDNSZoneType = strawberry_django.field()
-    netbox_dns_zone_list: List[NetBoxDNSZoneType] = strawberry_django.field()
+    netbox_dns_zone_list: list[NetBoxDNSZoneType] = strawberry_django.field()
 
 
 @strawberry.type(name="Query")
 class NetBoxDNSRecordQuery:
     netbox_dns_record: NetBoxDNSRecordType = strawberry_django.field()
-    netbox_dns_record_list: List[NetBoxDNSRecordType] = strawberry_django.field()
+    netbox_dns_record_list: list[NetBoxDNSRecordType] = strawberry_django.field()
 
 
 @strawberry.type(name="Query")
@@ -48,7 +46,7 @@ class NetBoxDNSDNSSECKeyTemplateQuery:
     netbox_dns_dnssec_key_template: NetBoxDNSDNSSECKeyTemplateType = (
         strawberry_django.field()
     )
-    netbox_dns_dnssec_key_template_list: List[NetBoxDNSDNSSECKeyTemplateType] = (
+    netbox_dns_dnssec_key_template_list: list[NetBoxDNSDNSSECKeyTemplateType] = (
         strawberry_django.field()
     )
 
@@ -56,7 +54,7 @@ class NetBoxDNSDNSSECKeyTemplateQuery:
 @strawberry.type(name="Query")
 class NetBoxDNSDNSSECPolicyQuery:
     netbox_dns_dnssec_policy: NetBoxDNSDNSSECPolicyType = strawberry_django.field()
-    netbox_dns_dnssec_policy_list: List[NetBoxDNSDNSSECPolicyType] = (
+    netbox_dns_dnssec_policy_list: list[NetBoxDNSDNSSECPolicyType] = (
         strawberry_django.field()
     )
 
@@ -66,7 +64,7 @@ class NetBoxDNSRegistrationContactQuery:
     netbox_dns_registration_contact: NetBoxDNSRegistrationContactType = (
         strawberry_django.field()
     )
-    netbox_dns_registration_contact_list: List[NetBoxDNSRegistrationContactType] = (
+    netbox_dns_registration_contact_list: list[NetBoxDNSRegistrationContactType] = (
         strawberry_django.field()
     )
 
@@ -74,13 +72,13 @@ class NetBoxDNSRegistrationContactQuery:
 @strawberry.type(name="Query")
 class NetBoxDNSRegistrarQuery:
     netbox_dns_registrar: NetBoxDNSRegistrarType = strawberry_django.field()
-    netbox_dns_registrar_list: List[NetBoxDNSRegistrarType] = strawberry_django.field()
+    netbox_dns_registrar_list: list[NetBoxDNSRegistrarType] = strawberry_django.field()
 
 
 @strawberry.type(name="Query")
 class NetBoxDNSZoneTemplateQuery:
     netbox_dns_zone_template: NetBoxDNSZoneTemplateType = strawberry_django.field()
-    netbox_dns_zone_template_list: List[NetBoxDNSZoneTemplateType] = (
+    netbox_dns_zone_template_list: list[NetBoxDNSZoneTemplateType] = (
         strawberry_django.field()
     )
 
@@ -88,6 +86,6 @@ class NetBoxDNSZoneTemplateQuery:
 @strawberry.type(name="Query")
 class NetBoxDNSRecordTemplateQuery:
     netbox_dns_record_template: NetBoxDNSRecordTemplateType = strawberry_django.field()
-    netbox_dns_record_template_list: List[NetBoxDNSRecordTemplateType] = (
+    netbox_dns_record_template_list: list[NetBoxDNSRecordTemplateType] = (
         strawberry_django.field()
     )

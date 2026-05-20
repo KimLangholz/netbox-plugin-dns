@@ -1,16 +1,14 @@
 from django.urls import reverse
 from rest_framework import status
 
-
-from utilities.testing import APIViewTestCases
-
+from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import NameServer, Record, View, Zone
 from netbox_dns.tests.custom import (
     APITestCase,
-    NetBoxDNSGraphQLMixin,
     CustomFieldTargetAPIMixin,
+    NetBoxDNSGraphQLMixin,
 )
-from netbox_dns.models import View, Zone, NameServer, Record
-from netbox_dns.choices import RecordTypeChoices
+from utilities.testing import APIViewTestCases
 
 
 class RecordAPITestCase(

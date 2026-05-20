@@ -1,12 +1,11 @@
+from django.test import TestCase
 from dns import rdata
 
-from django.test import TestCase
-
-from netbox_dns.models import NameServer, Record, Zone
 from netbox_dns.choices import (
     RecordClassChoices,
     RecordTypeChoices,
 )
+from netbox_dns.models import NameServer, Record, Zone
 
 
 def parse_soa_value(soa):
@@ -38,19 +37,17 @@ class ZoneAutoSOATestCase(TestCase):
         soa = parse_soa_value(soa_records[0].value)
 
         self.assertTrue(
-            all(
-                (
-                    zone.soa_mname.name + "." == soa.mname.to_text(),
-                    zone.soa_rname + "." == soa.rname.to_text(),
-                    zone.soa_serial == soa.serial,
-                    zone.soa_refresh == soa.refresh,
-                    zone.soa_retry == soa.retry,
-                    zone.soa_expire == soa.expire,
-                    zone.soa_minimum == soa.minimum,
-                    zone.soa_ttl == soa_records[0].ttl,
-                    len(soa_records) == 1,
-                )
-            )
+            all((
+                zone.soa_mname.name + "." == soa.mname.to_text(),
+                zone.soa_rname + "." == soa.rname.to_text(),
+                zone.soa_serial == soa.serial,
+                zone.soa_refresh == soa.refresh,
+                zone.soa_retry == soa.retry,
+                zone.soa_expire == soa.expire,
+                zone.soa_minimum == soa.minimum,
+                zone.soa_ttl == soa_records[0].ttl,
+                len(soa_records) == 1,
+            ))
         )
 
     def test_zone_soa_change_mname_no_dot(self):

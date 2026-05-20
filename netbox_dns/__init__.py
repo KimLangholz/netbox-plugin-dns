@@ -1,5 +1,5 @@
-from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.translation import gettext_lazy as _
 
 from netbox.plugins import PluginConfig
 from netbox.plugins.utils import get_plugin_config
