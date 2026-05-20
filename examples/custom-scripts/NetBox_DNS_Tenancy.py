@@ -22,8 +22,12 @@ class RecordTenancySynchronizer(Script):
 
         record = Record.objects.get(pk=pk)
         if record.is_address_record:
-            if (ptr_record := record.ptr_record) is not None and ptr_record.tenant != record.tenant:
-                self.log_info(f"Setting tenant for record {ptr_record} to {record.tenant}")
+            if (
+                ptr_record := record.ptr_record
+            ) is not None and ptr_record.tenant != record.tenant:
+                self.log_info(
+                    f"Setting tenant for record {ptr_record} to {record.tenant}"
+                )
                 ptr_record.tenant = record.tenant
                 ptr_record.save()
 
@@ -33,7 +37,9 @@ class RecordTenancySynchronizer(Script):
 class IPAddressTenancySynchronizer(Script):
     class Meta:
         name = "IP Address Tenancy Synchronizer"
-        description = "Set the tenant for an IPAM coupled address record from its IP address"
+        description = (
+            "Set the tenant for an IPAM coupled address record from its IP address"
+        )
         commit_default = True
 
     def run(self, data, commit):
@@ -50,7 +56,9 @@ class IPAddressTenancySynchronizer(Script):
                 address_record.tenant = tenant
                 address_record.save()
 
-            if (ptr_record := address_record.ptr_record) is not None and ptr_record.tenant != tenant:
+            if (
+                ptr_record := address_record.ptr_record
+            ) is not None and ptr_record.tenant != tenant:
                 self.log_info(f"Setting tenant for record {ptr_record} to {tenant}")
                 ptr_record.tenant = tenant
                 ptr_record.save()

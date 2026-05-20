@@ -50,7 +50,6 @@ def name_is_allowed(dns_name, ipaddress, request):
 
 
 class NamePermissionValidator(CustomValidator):
-
     def validate(self, ipaddress, request):
         dns_name = ipaddress.dns_name
         if dns_name != "" and not name_is_allowed(dns_name, ipaddress, request):

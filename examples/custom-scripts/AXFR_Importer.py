@@ -170,7 +170,6 @@ class AXFRImporter(Script):
         for name, node in axfr_zone.nodes.items():
             name = name.relativize(origin)
             for rdataset in node.rdatasets:
-
                 if rdataset.rdclass != rdataclass.IN:
                     continue
 

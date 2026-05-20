@@ -200,13 +200,10 @@ class ZoneFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
             return queryset.filter(
                 dnssec_policy__isnull=False, dnssec_policy__inline_signing=True
             )
-        else:
-            return queryset.filter(
-                Q(
-                    Q(dnssec_policy__isnull=True)
-                    | Q(dnssec_policy__inline_signing=False)
-                )
-            )
+
+        return queryset.filter(
+            Q(Q(dnssec_policy__isnull=True) | Q(dnssec_policy__inline_signing=False))
+        )
 
     def search(self, queryset, name, value):
         if not value.strip():
