@@ -1,37 +1,35 @@
 import ipaddress
-import netaddr
 
 import dns
+import netaddr
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
+from django.db import models
+from django.db.models import BooleanField, ExpressionWrapper, Min, Q
+from django.utils.translation import gettext_lazy as _
 from dns import name as dns_name
 from dns import rdata
 
-from django.core.exceptions import ValidationError
-from django.db import models
-from django.db.models import Q, ExpressionWrapper, BooleanField, Min
-from django.conf import settings
-from django.utils.translation import gettext_lazy as _
-from django.core.validators import MaxValueValidator
-
 from netbox.models import PrimaryModel
 from netbox.models.features import ContactsMixin
-from netbox.search import SearchIndex, register_search
 from netbox.plugins.utils import get_plugin_config
-from utilities.querysets import RestrictedQuerySet
-
+from netbox.search import SearchIndex, register_search
+from netbox_dns.choices import (
+    RecordClassChoices,
+    RecordStatusChoices,
+    RecordTypeChoices,
+)
 from netbox_dns.fields import AddressField
+from netbox_dns.mixins import ObjectModificationMixin
 from netbox_dns.utilities import (
     arpa_to_prefix,
-    name_to_unicode,
     check_filter,
     get_cidr_address,
+    name_to_unicode,
 )
 from netbox_dns.validators import validate_generic_name, validate_record_value
-from netbox_dns.mixins import ObjectModificationMixin
-from netbox_dns.choices import (
-    RecordTypeChoices,
-    RecordStatusChoices,
-    RecordClassChoices,
-)
+from utilities.querysets import RestrictedQuerySet
 
 __all__ = (
     "Record",

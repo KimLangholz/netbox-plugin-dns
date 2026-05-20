@@ -1,18 +1,16 @@
 import django_tables2 as tables
-
 from django.conf import settings
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from netbox.plugins.utils import get_plugin_config
-from netbox.plugins import PluginTemplateExtension
-from utilities.tables import register_table_column
 from ipam.tables import IPAddressTable
-
-from netbox_dns.models import Record
+from netbox.plugins import PluginTemplateExtension
+from netbox.plugins.utils import get_plugin_config
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import Record
 from netbox_dns.tables import RelatedRecordTable, RelatedViewTable
 from netbox_dns.utilities import get_views_by_prefix
+from utilities.tables import register_table_column
 
 
 class RelatedDNSRecords(PluginTemplateExtension):

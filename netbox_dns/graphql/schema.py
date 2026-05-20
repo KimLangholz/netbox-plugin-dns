@@ -2,16 +2,16 @@ import strawberry
 import strawberry_django
 
 from .types import (
-    NetBoxDNSNameServerType,
-    NetBoxDNSViewType,
-    NetBoxDNSZoneType,
-    NetBoxDNSRecordType,
     NetBoxDNSDNSSECKeyTemplateType,
     NetBoxDNSDNSSECPolicyType,
-    NetBoxDNSRegistrationContactType,
-    NetBoxDNSRegistrarType,
-    NetBoxDNSZoneTemplateType,
+    NetBoxDNSNameServerType,
     NetBoxDNSRecordTemplateType,
+    NetBoxDNSRecordType,
+    NetBoxDNSRegistrarType,
+    NetBoxDNSRegistrationContactType,
+    NetBoxDNSViewType,
+    NetBoxDNSZoneTemplateType,
+    NetBoxDNSZoneType,
 )
 
 

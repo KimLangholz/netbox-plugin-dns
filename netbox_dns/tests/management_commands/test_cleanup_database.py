@@ -1,17 +1,14 @@
 import netaddr
-from netaddr import IPNetwork
-
+from django.conf import settings
+from django.core import management
+from django.test import TestCase
 from dns import rdata
 from dns.rdtypes.ANY import SOA
-
-from django.test import TestCase
-from django.core import management
-from django.conf import settings
+from netaddr import IPNetwork
 
 from ipam.models import IPAddress, Prefix
-
-from netbox_dns.models import Zone, Record, NameServer
 from netbox_dns.choices import RecordClassChoices, RecordTypeChoices
+from netbox_dns.models import NameServer, Record, Zone
 
 
 def parse_soa_value(soa):

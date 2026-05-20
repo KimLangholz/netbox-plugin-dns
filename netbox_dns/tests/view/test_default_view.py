@@ -1,6 +1,5 @@
-from django.test import TestCase
 from django.core.exceptions import ValidationError
-
+from django.test import TestCase
 
 from netbox_dns.models import View
 

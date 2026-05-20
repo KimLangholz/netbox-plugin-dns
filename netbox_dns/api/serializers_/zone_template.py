@@ -2,15 +2,14 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from netbox.api.serializers import PrimaryModelSerializer
+from netbox_dns.api.nested_serializers import NestedRecordTemplateSerializer
+from netbox_dns.models import ZoneTemplate
 from tenancy.api.serializers_.tenants import TenantSerializer
 
-from netbox_dns.models import ZoneTemplate
-from netbox_dns.api.nested_serializers import NestedRecordTemplateSerializer
-
+from .dnssec_policy import DNSSECPolicySerializer
 from .nameserver import NameServerSerializer
 from .registrar import RegistrarSerializer
 from .registration_contact import RegistrationContactSerializer
-from .dnssec_policy import DNSSECPolicySerializer
 
 __all__ = ("ZoneTemplateSerializer",)
 

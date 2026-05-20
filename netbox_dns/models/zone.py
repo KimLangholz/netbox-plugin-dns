@@ -1,59 +1,58 @@
 import re
+from datetime import date, datetime
 from math import ceil
-from datetime import datetime, date
 
-from dns import name as dns_name
-from dns.exception import DNSException
-from dns.rdtypes.ANY import SOA
-from django.core.validators import (
-    MinValueValidator,
-    MaxValueValidator,
-)
+from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.validators import (
+    MaxValueValidator,
+    MinValueValidator,
+)
 from django.db import models, transaction
-from django.db.models import Q, Max, ExpressionWrapper, BooleanField, UniqueConstraint
+from django.db.models import BooleanField, ExpressionWrapper, Max, Q, UniqueConstraint
 from django.db.models.functions import Length, Lower
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
-from django.conf import settings
-from django.contrib.postgres.fields import ArrayField
 from django.utils.translation import gettext_lazy as _
+from dns import name as dns_name
+from dns.exception import DNSException
+from dns.rdtypes.ANY import SOA
 
+from ipam.choices import IPAddressFamilyChoices
+from ipam.models import IPAddress
 from netbox.models import PrimaryModel
 from netbox.models.features import ContactsMixin
-from netbox.search import SearchIndex, register_search
 from netbox.plugins.utils import get_plugin_config
-from utilities.querysets import RestrictedQuerySet
-from ipam.models import IPAddress
-from ipam.choices import IPAddressFamilyChoices
-
+from netbox.search import SearchIndex, register_search
 from netbox_dns.choices import (
     RecordClassChoices,
     RecordTypeChoices,
-    ZoneStatusChoices,
     ZoneEPPStatusChoices,
+    ZoneStatusChoices,
 )
 from netbox_dns.fields import NetworkField, RFC2317NetworkField
+from netbox_dns.mixins import ObjectModificationMixin
 from netbox_dns.utilities import (
-    update_dns_records,
+    NameFormatError,
+    arpa_to_prefix,
     check_dns_records,
     get_ip_addresses_by_zone,
-    arpa_to_prefix,
+    get_parent_zone_names,
     name_to_unicode,
     normalize_name,
-    get_parent_zone_names,
     regex_from_list,
-    NameFormatError,
+    update_dns_records,
 )
 from netbox_dns.validators import (
-    validate_rname,
     validate_domain_name,
+    validate_rname,
 )
-from netbox_dns.mixins import ObjectModificationMixin
+from utilities.querysets import RestrictedQuerySet
 
+from .nameserver import NameServer
 from .record import Record
 from .view import View
-from .nameserver import NameServer
 
 __all__ = (
     "Zone",

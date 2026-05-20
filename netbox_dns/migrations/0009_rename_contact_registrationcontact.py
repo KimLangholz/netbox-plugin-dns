@@ -1,4 +1,4 @@
-from django.db import migrations, connection
+from django.db import connection, migrations
 
 
 def remove_object_changes(apps, schema_editor):

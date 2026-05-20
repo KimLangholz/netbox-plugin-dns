@@ -1,11 +1,10 @@
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
-from netbox.api.serializers import PrimaryModelSerializer
-from tenancy.api.serializers import TenantSerializer
 from ipam.api.serializers import PrefixSerializer
-
+from netbox.api.serializers import PrimaryModelSerializer
 from netbox_dns.models import View
+from tenancy.api.serializers import TenantSerializer
 
 __all__ = ("ViewSerializer",)
 

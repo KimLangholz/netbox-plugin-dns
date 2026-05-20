@@ -2,8 +2,8 @@ import ipaddress
 
 from django.test import TestCase, override_settings
 
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
 from netbox_dns.models import NameServer, Record, Zone
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices
 
 
 def reverse_name(address, reverse_zone):

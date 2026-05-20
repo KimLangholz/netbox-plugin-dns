@@ -1,9 +1,8 @@
 from django.db.models import Q
 
 from netbox.filtersets import PrimaryModelFilterSet
-from utilities.filtersets import register_filterset
-
 from netbox_dns.models import Registrar
+from utilities.filtersets import register_filterset
 
 __all__ = ("RegistrarFilterSet",)
 

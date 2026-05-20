@@ -1,12 +1,11 @@
 import ipaddress
 
-from django.test import TestCase
-from django.db.utils import IntegrityError
 from django.core.exceptions import ValidationError
+from django.db.utils import IntegrityError
+from django.test import TestCase
 
-
-from netbox_dns.models import View, Zone, NameServer, Record
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import NameServer, Record, View, Zone
 
 
 def reverse_name(address, reverse_zone):

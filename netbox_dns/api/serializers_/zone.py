@@ -2,19 +2,17 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from netbox.api.serializers import PrimaryModelSerializer
+from netbox_dns.models import Zone
 from tenancy.api.serializers import TenantSerializer
 
-from .view import ViewSerializer
+from ..field_serializers import TimePeriodField
+from ..nested_serializers import NestedZoneSerializer
+from .dnssec_policy import DNSSECPolicySerializer
 from .nameserver import NameServerSerializer
 from .registrar import RegistrarSerializer
 from .registration_contact import RegistrationContactSerializer
+from .view import ViewSerializer
 from .zone_template import ZoneTemplateSerializer
-from .dnssec_policy import DNSSECPolicySerializer
-
-from ..nested_serializers import NestedZoneSerializer
-from ..field_serializers import TimePeriodField
-
-from netbox_dns.models import Zone
 
 __all__ = ("ZoneSerializer",)
 

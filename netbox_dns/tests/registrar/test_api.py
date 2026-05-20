@@ -1,11 +1,10 @@
-from utilities.testing import APIViewTestCases
-
+from netbox_dns.models import Registrar
 from netbox_dns.tests.custom import (
     APITestCase,
-    NetBoxDNSGraphQLMixin,
     CustomFieldTargetAPIMixin,
+    NetBoxDNSGraphQLMixin,
 )
-from netbox_dns.models import Registrar
+from utilities.testing import APIViewTestCases
 
 
 class RegistrarAPITestCase(

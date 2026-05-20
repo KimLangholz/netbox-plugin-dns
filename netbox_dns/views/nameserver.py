@@ -1,19 +1,17 @@
+from django.utils.translation import gettext_lazy as _
 from dns import name as dns_name
 
-from django.utils.translation import gettext_lazy as _
-
 from netbox.views import generic
-from utilities.views import ViewTab, register_model_view
-
 from netbox_dns.filtersets import NameServerFilterSet, ZoneFilterSet
 from netbox_dns.forms import (
-    NameServerImportForm,
+    NameServerBulkEditForm,
     NameServerFilterForm,
     NameServerForm,
-    NameServerBulkEditForm,
+    NameServerImportForm,
 )
-from netbox_dns.models import Zone, NameServer
+from netbox_dns.models import NameServer, Zone
 from netbox_dns.tables import NameServerTable, ZoneTable
+from utilities.views import ViewTab, register_model_view
 
 __all__ = (
     "NameServerView",

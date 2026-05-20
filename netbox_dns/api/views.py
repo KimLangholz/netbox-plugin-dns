@@ -2,47 +2,45 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 from rest_framework.routers import APIRootView
 
-from ipam.models import Prefix
 from ipam.filtersets import PrefixFilterSet
-
+from ipam.models import Prefix
 from netbox.api.viewsets import NetBoxModelViewSet
-
 from netbox_dns.api.serializers import (
-    ViewSerializer,
-    ZoneSerializer,
-    NameServerSerializer,
-    RecordSerializer,
-    RegistrarSerializer,
-    RegistrationContactSerializer,
-    ZoneTemplateSerializer,
-    RecordTemplateSerializer,
     DNSSECKeyTemplateSerializer,
     DNSSECPolicySerializer,
+    NameServerSerializer,
     PrefixSerializer,
+    RecordSerializer,
+    RecordTemplateSerializer,
+    RegistrarSerializer,
+    RegistrationContactSerializer,
+    ViewSerializer,
+    ZoneSerializer,
+    ZoneTemplateSerializer,
 )
 from netbox_dns.filtersets import (
-    ViewFilterSet,
-    ZoneFilterSet,
-    NameServerFilterSet,
-    RecordFilterSet,
-    RegistrarFilterSet,
-    RegistrationContactFilterSet,
-    ZoneTemplateFilterSet,
-    RecordTemplateFilterSet,
     DNSSECKeyTemplateFilterSet,
     DNSSECPolicyFilterSet,
+    NameServerFilterSet,
+    RecordFilterSet,
+    RecordTemplateFilterSet,
+    RegistrarFilterSet,
+    RegistrationContactFilterSet,
+    ViewFilterSet,
+    ZoneFilterSet,
+    ZoneTemplateFilterSet,
 )
 from netbox_dns.models import (
-    View,
-    Zone,
-    NameServer,
-    Record,
-    Registrar,
-    RegistrationContact,
-    ZoneTemplate,
-    RecordTemplate,
     DNSSECKeyTemplate,
     DNSSECPolicy,
+    NameServer,
+    Record,
+    RecordTemplate,
+    Registrar,
+    RegistrationContact,
+    View,
+    Zone,
+    ZoneTemplate,
 )
 
 

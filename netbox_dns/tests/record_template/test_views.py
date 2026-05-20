@@ -1,8 +1,7 @@
-from utilities.testing import ViewTestCases, create_tags
-
-from netbox_dns.tests.custom import ModelViewTestCase
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
 from netbox_dns.models import RecordTemplate
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices
+from netbox_dns.tests.custom import ModelViewTestCase
+from utilities.testing import ViewTestCases, create_tags
 
 
 class RecordViewTestCase(

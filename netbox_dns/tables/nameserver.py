@@ -2,9 +2,8 @@ import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import PrimaryModelTable, TagColumn
-from tenancy.tables import TenancyColumnsMixin
-
 from netbox_dns.models import NameServer
+from tenancy.tables import TenancyColumnsMixin
 
 __all__ = ("NameServerTable",)
 

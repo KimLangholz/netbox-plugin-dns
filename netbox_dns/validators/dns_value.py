@@ -1,18 +1,17 @@
 import re
 import textwrap
 
-from dns import rdata, name as dns_name
-from dns.exception import SyntaxError
-
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
+from dns import name as dns_name
+from dns import rdata
+from dns.exception import SyntaxError
 
 from netbox.plugins.utils import get_plugin_config
-
 from netbox_dns.choices import RecordClassChoices, RecordTypeChoices
 from netbox_dns.validators import (
-    validate_fqdn,
     validate_domain_name,
+    validate_fqdn,
     validate_generic_name,
 )
 

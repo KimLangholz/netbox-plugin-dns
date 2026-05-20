@@ -1,13 +1,11 @@
-from django.dispatch import receiver
-from django.db.models.signals import m2m_changed
 from django.core.exceptions import ValidationError
+from django.db.models.signals import m2m_changed
+from django.dispatch import receiver
 
 from netbox.context import current_request
-from utilities.exceptions import AbortRequest
-
+from netbox_dns.models import DNSSECKeyTemplate, DNSSECPolicy
 from netbox_dns.validators import validate_key_template_assignment
-
-from netbox_dns.models import DNSSECPolicy, DNSSECKeyTemplate
+from utilities.exceptions import AbortRequest
 
 
 @receiver(m2m_changed, sender=DNSSECPolicy.key_templates.through)

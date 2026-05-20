@@ -2,11 +2,10 @@ from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 
-from utilities.testing import ViewTestCases, create_tags
-
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices, ZoneStatusChoices
+from netbox_dns.models import NameServer, Record, View, Zone
 from netbox_dns.tests.custom import ModelViewTestCase
-from netbox_dns.models import View, Zone, NameServer, Record
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices, ZoneStatusChoices
+from utilities.testing import ViewTestCases, create_tags
 
 
 class RecordViewTestCase(

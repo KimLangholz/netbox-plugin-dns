@@ -1,38 +1,37 @@
 from django import forms
 from django.conf import settings
-from django.core.exceptions import ValidationError, FieldError
-from django.db.models import Q, Count
+from django.core.exceptions import FieldError, ValidationError
+from django.db.models import Count, Q
 from django.utils.translation import gettext_lazy as _
 
+from ipam.models import IPAddress, Prefix
+from netbox.context import current_request
 from netbox.forms import (
     PrimaryModelBulkEditForm,
     PrimaryModelFilterSetForm,
-    PrimaryModelImportForm,
     PrimaryModelForm,
+    PrimaryModelImportForm,
 )
+from netbox_dns.fields import PrefixDynamicModelMultipleChoiceField
+from netbox_dns.models import View
+from netbox_dns.utilities import (
+    check_dns_records,
+    get_ip_addresses_by_prefix,
+    get_query_from_filter,
+    get_views_by_prefix,
+)
+from tenancy.forms import TenancyFilterForm, TenancyForm
+from tenancy.models import Tenant, TenantGroup
+from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES
 from utilities.forms.fields import (
-    TagFilterField,
     CSVModelChoiceField,
     CSVModelMultipleChoiceField,
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
+    JSONField,
+    TagFilterField,
 )
-from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES
 from utilities.forms.rendering import FieldSet
-from utilities.forms.fields import JSONField
-from tenancy.models import Tenant, TenantGroup
-from tenancy.forms import TenancyForm, TenancyFilterForm
-from ipam.models import Prefix, IPAddress
-from netbox.context import current_request
-
-from netbox_dns.models import View
-from netbox_dns.fields import PrefixDynamicModelMultipleChoiceField
-from netbox_dns.utilities import (
-    check_dns_records,
-    get_ip_addresses_by_prefix,
-    get_views_by_prefix,
-    get_query_from_filter,
-)
 
 __all__ = (
     "ViewForm",

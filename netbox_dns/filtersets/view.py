@@ -1,14 +1,11 @@
 import django_filters
-
 from django.db.models import Q
 
+from ipam.models import Prefix
 from netbox.filtersets import PrimaryModelFilterSet
+from netbox_dns.models import View
 from tenancy.filtersets import TenancyFilterSet
 from utilities.filtersets import register_filterset
-
-from ipam.models import Prefix
-
-from netbox_dns.models import View
 
 __all__ = ("ViewFilterSet",)
 

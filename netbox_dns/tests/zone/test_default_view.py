@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from netbox_dns.models import View, NameServer, Zone
+from netbox_dns.models import NameServer, View, Zone
 
 
 class ZoneDefaultViewTestCase(TestCase):

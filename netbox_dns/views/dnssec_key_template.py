@@ -1,15 +1,14 @@
 from netbox.views import generic
-from utilities.views import register_model_view
-
 from netbox_dns.filtersets import DNSSECKeyTemplateFilterSet
 from netbox_dns.forms import (
-    DNSSECKeyTemplateImportForm,
+    DNSSECKeyTemplateBulkEditForm,
     DNSSECKeyTemplateFilterForm,
     DNSSECKeyTemplateForm,
-    DNSSECKeyTemplateBulkEditForm,
+    DNSSECKeyTemplateImportForm,
 )
 from netbox_dns.models import DNSSECKeyTemplate
 from netbox_dns.tables import DNSSECKeyTemplateTable, DNSSECPolicyDisplayTable
+from utilities.views import register_model_view
 
 __all__ = (
     "DNSSECKeyTemplateView",

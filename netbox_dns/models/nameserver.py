@@ -1,24 +1,22 @@
-from dns import name as dns_name
-
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Q, UniqueConstraint
 from django.db.models.functions import Lower
 from django.utils.translation import gettext_lazy as _
+from dns import name as dns_name
 
 from netbox.models import PrimaryModel
-from netbox.search import SearchIndex, register_search
 from netbox.models.features import ContactsMixin
 from netbox.plugins.utils import get_plugin_config
-
+from netbox.search import SearchIndex, register_search
+from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.mixins import ObjectModificationMixin
 from netbox_dns.utilities import (
+    NameFormatError,
     name_to_unicode,
     normalize_name,
-    NameFormatError,
 )
-from netbox_dns.choices import RecordTypeChoices
 from netbox_dns.validators import validate_fqdn
-from netbox_dns.mixins import ObjectModificationMixin
 
 __all__ = (
     "NameServer",

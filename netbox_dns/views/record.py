@@ -1,26 +1,24 @@
-from dns import name as dns_name
-
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from dns import name as dns_name
 
 from netbox.views import generic
-from utilities.views import register_model_view
-
+from netbox_dns.choices import RecordTypeChoices
 from netbox_dns.filtersets import RecordFilterSet
 from netbox_dns.forms import (
-    RecordImportForm,
+    RecordBulkEditForm,
     RecordFilterForm,
     RecordForm,
-    RecordBulkEditForm,
+    RecordImportForm,
 )
 from netbox_dns.models import Record
-from netbox_dns.choices import RecordTypeChoices
-from netbox_dns.tables import RecordTable, ManagedRecordTable, RelatedRecordTable
+from netbox_dns.tables import ManagedRecordTable, RecordTable, RelatedRecordTable
 from netbox_dns.utilities import (
-    value_to_unicode,
     get_parent_zone_names,
     regex_from_list,
+    value_to_unicode,
 )
+from utilities.views import register_model_view
 
 __all__ = (
     "RecordView",

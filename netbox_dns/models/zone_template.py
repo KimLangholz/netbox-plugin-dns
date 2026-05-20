@@ -1,14 +1,12 @@
+from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
+from django.db import models
+from django.utils.translation import gettext_lazy as _
 from dns import name as dns_name
 from dns.exception import DNSException
 
-from django.db import models
-from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ValidationError
-from django.contrib.postgres.fields import ArrayField
-
 from netbox.models import PrimaryModel
 from netbox.search import SearchIndex, register_search
-
 from netbox_dns.validators import validate_rname
 
 __all__ = (

@@ -1,9 +1,8 @@
 from django import forms
-from django.db import models
-from django.db.models import Lookup, Transform, IntegerField
 from django.core.exceptions import ValidationError
+from django.db import models
+from django.db.models import IntegerField, Lookup, Transform
 from django.utils.translation import gettext_lazy as _
-
 from netaddr import AddrFormatError, IPNetwork
 
 __all__ = ("NetworkField",)

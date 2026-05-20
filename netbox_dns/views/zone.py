@@ -1,24 +1,22 @@
+from django.utils.translation import gettext_lazy as _
 from dns import name as dns_name
 
-from django.utils.translation import gettext_lazy as _
-
 from netbox.views import generic
-from utilities.views import ViewTab, register_model_view
-
-from netbox_dns.filtersets import ZoneFilterSet, RecordFilterSet
+from netbox_dns.filtersets import RecordFilterSet, ZoneFilterSet
 from netbox_dns.forms import (
-    ZoneImportForm,
-    ZoneForm,
-    ZoneFilterForm,
     ZoneBulkEditForm,
+    ZoneFilterForm,
+    ZoneForm,
+    ZoneImportForm,
 )
 from netbox_dns.models import Record, Zone
 from netbox_dns.tables import (
-    ZoneTable,
-    RecordTable,
-    ManagedRecordTable,
     DelegationRecordTable,
+    ManagedRecordTable,
+    RecordTable,
+    ZoneTable,
 )
+from utilities.views import ViewTab, register_model_view
 
 __all__ = (
     "ZoneView",

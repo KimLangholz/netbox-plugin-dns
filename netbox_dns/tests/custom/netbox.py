@@ -1,18 +1,16 @@
 import inspect
 
 import strawberry_django
-
 from django.urls import reverse
 from django.utils.module_loading import import_string
-
 from strawberry.types.base import StrawberryList, StrawberryOptional
-from strawberry.types.union import StrawberryUnion
 from strawberry.types.lazy_type import LazyType
+from strawberry.types.union import StrawberryUnion
 
 from ipam.graphql.types import IPAddressFamilyType
+from netbox.api.exceptions import GraphQLTypeNotFound
 from utilities.testing.api import APITestCase as NetBoxAPITestCase
 from utilities.testing.views import ModelViewTestCase as NetBoxModelViewTestCase
-from netbox.api.exceptions import GraphQLTypeNotFound
 
 __all__ = (
     "NetBoxDNSGraphQLMixin",

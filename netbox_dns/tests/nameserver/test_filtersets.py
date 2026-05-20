@@ -1,10 +1,9 @@
 from django.test import TestCase
 
+from netbox_dns.filtersets import NameServerFilterSet
+from netbox_dns.models import NameServer, Zone
 from tenancy.models import Tenant, TenantGroup
 from utilities.testing import ChangeLoggedFilterSetTests
-
-from netbox_dns.models import NameServer, Zone
-from netbox_dns.filtersets import NameServerFilterSet
 
 
 class NameServerFiterSetTestCase(TestCase, ChangeLoggedFilterSetTests):

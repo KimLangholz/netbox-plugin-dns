@@ -2,16 +2,15 @@ import django_filters
 from django.db.models import Q
 
 from netbox.filtersets import PrimaryModelFilterSet
-from tenancy.filtersets import TenancyFilterSet
-from utilities.filtersets import register_filterset
-
-from netbox_dns.models import DNSSECKeyTemplate, DNSSECPolicy
 from netbox_dns.choices import (
-    DNSSECKeyTemplateTypeChoices,
     DNSSECKeyTemplateAlgorithmChoices,
     DNSSECKeyTemplateKeySizeChoices,
+    DNSSECKeyTemplateTypeChoices,
 )
 from netbox_dns.filters import TimePeriodFilter
+from netbox_dns.models import DNSSECKeyTemplate, DNSSECPolicy
+from tenancy.filtersets import TenancyFilterSet
+from utilities.filtersets import register_filterset
 
 __all__ = ("DNSSECKeyTemplateFilterSet",)
 

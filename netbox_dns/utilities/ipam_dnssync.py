@@ -1,20 +1,17 @@
 import re
-
 from collections import defaultdict
-
-from dns import name as dns_name
-from netaddr import IPNetwork
 
 from django.conf import settings
 from django.db.models import Q
+from dns import name as dns_name
+from netaddr import IPNetwork
 
-from netbox.context import current_request
 from ipam.models import IPAddress, Prefix
-
+from netbox.context import current_request
 from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
 
-from .dns import get_parent_zone_names
 from .conversions import regex_from_list
+from .dns import get_parent_zone_names
 
 __all__ = (
     "get_zones",
@@ -122,7 +119,7 @@ def get_zones(ip_address, view=None, old_zone=None):
 
 
 def check_dns_records(ip_address, zone=None, view=None):
-    from netbox_dns.models import Zone, Record
+    from netbox_dns.models import Record, Zone
 
     if ip_address.dns_name == "":
         return
@@ -167,7 +164,7 @@ def check_dns_records(ip_address, zone=None, view=None):
 
 
 def update_dns_records(ip_address, view=None, force=False):
-    from netbox_dns.models import Zone, Record
+    from netbox_dns.models import Record, Zone
 
     updated = False
 

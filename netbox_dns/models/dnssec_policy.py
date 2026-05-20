@@ -2,10 +2,9 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from netbox.models import PrimaryModel
-from netbox.search import SearchIndex, register_search
 from netbox.models.features import ContactsMixin
 from netbox.plugins.utils import get_plugin_config
-
+from netbox.search import SearchIndex, register_search
 from netbox_dns.choices import DNSSECPolicyDigestChoices, DNSSECPolicyStatusChoices
 from netbox_dns.fields import ChoiceArrayField
 

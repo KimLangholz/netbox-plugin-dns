@@ -2,15 +2,14 @@ import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import (
-    PrimaryModelTable,
-    ChoiceFieldColumn,
-    TagColumn,
     ActionsColumn,
+    ChoiceFieldColumn,
+    PrimaryModelTable,
+    TagColumn,
     columns,
 )
-from tenancy.tables import TenancyColumnsMixin
-
 from netbox_dns.models import Zone
+from tenancy.tables import TenancyColumnsMixin
 
 __all__ = (
     "ZoneTable",

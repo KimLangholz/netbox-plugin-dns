@@ -1,7 +1,6 @@
 import strawberry
 
 from netbox.graphql.filter_lookups import ArrayLookup
-
 from netbox_dns.graphql.enums import NetBoxDNSDNSSECPolicyDigestEnum
 
 

@@ -1,12 +1,11 @@
-from utilities.testing import APIViewTestCases, create_tags
-
+from netbox_dns.choices import ZoneEPPStatusChoices, ZoneStatusChoices
+from netbox_dns.models import NameServer, Registrar, RegistrationContact, View, Zone
 from netbox_dns.tests.custom import (
     APITestCase,
-    NetBoxDNSGraphQLMixin,
     CustomFieldTargetAPIMixin,
+    NetBoxDNSGraphQLMixin,
 )
-from netbox_dns.models import View, Zone, NameServer, Registrar, RegistrationContact
-from netbox_dns.choices import ZoneStatusChoices, ZoneEPPStatusChoices
+from utilities.testing import APIViewTestCases, create_tags
 
 
 class ZoneAPITestCase(

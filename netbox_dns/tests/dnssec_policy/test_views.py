@@ -1,22 +1,21 @@
 from django.urls import reverse
 from rest_framework import status
 
-from utilities.testing import ViewTestCases, create_tags, post_data
-
-from netbox_dns.tests.custom import ModelViewTestCase
-from netbox_dns.models import (
-    DNSSECPolicy,
-    DNSSECKeyTemplate,
-    Zone,
-    NameServer,
-    ZoneTemplate,
-)
 from netbox_dns.choices import (
+    DNSSECKeyTemplateAlgorithmChoices,
+    DNSSECKeyTemplateTypeChoices,
     DNSSECPolicyDigestChoices,
     DNSSECPolicyStatusChoices,
-    DNSSECKeyTemplateTypeChoices,
-    DNSSECKeyTemplateAlgorithmChoices,
 )
+from netbox_dns.models import (
+    DNSSECKeyTemplate,
+    DNSSECPolicy,
+    NameServer,
+    Zone,
+    ZoneTemplate,
+)
+from netbox_dns.tests.custom import ModelViewTestCase
+from utilities.testing import ViewTestCases, create_tags, post_data
 
 
 class DNSSECPolicyViewTestCase(

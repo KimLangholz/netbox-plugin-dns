@@ -1,18 +1,17 @@
 from dns import name as dns_name
 
 from netbox.views import generic
-from utilities.views import register_model_view
-
 from netbox_dns.filtersets import RecordTemplateFilterSet
 from netbox_dns.forms import (
-    RecordTemplateImportForm,
+    RecordTemplateBulkEditForm,
     RecordTemplateFilterForm,
     RecordTemplateForm,
-    RecordTemplateBulkEditForm,
+    RecordTemplateImportForm,
 )
 from netbox_dns.models import RecordTemplate
 from netbox_dns.tables import RecordTemplateTable, ZoneTemplateDisplayTable
 from netbox_dns.utilities import value_to_unicode
+from utilities.views import register_model_view
 
 __all__ = (
     "RecordTemplateView",

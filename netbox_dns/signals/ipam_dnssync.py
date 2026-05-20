@@ -1,24 +1,22 @@
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.db.models.signals import m2m_changed, post_save, pre_delete, pre_save
+from django.dispatch import receiver
+from django.utils.translation import gettext as _
 from netaddr import IPNetwork
 
-from django.conf import settings
-from django.dispatch import receiver
-from django.db.models.signals import pre_delete, pre_save, post_save, m2m_changed
-from django.core.exceptions import ValidationError
-from django.utils.translation import gettext as _
-
+from ipam.models import IPAddress, Prefix
 from netbox.context import current_request
 from netbox.signals import post_clean
-from ipam.models import IPAddress, Prefix
-from utilities.exceptions import AbortRequest
-
 from netbox_dns.utilities import (
     check_dns_records,
     check_record_permission,
-    update_dns_records,
     delete_dns_records,
-    get_views_by_prefix,
     get_ip_addresses_by_prefix,
+    get_views_by_prefix,
+    update_dns_records,
 )
+from utilities.exceptions import AbortRequest
 
 DNSSYNC_CUSTOM_FIELDS = {
     "ipaddress_dns_disabled": False,

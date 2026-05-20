@@ -1,10 +1,9 @@
 import re
 
+from django.utils.dateparse import parse_duration
 from dns import name as dns_name
 from dns.exception import DNSException
-from netaddr import IPNetwork, AddrFormatError
-
-from django.utils.dateparse import parse_duration
+from netaddr import AddrFormatError, IPNetwork
 
 from netbox.plugins.utils import get_plugin_config
 

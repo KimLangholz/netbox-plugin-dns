@@ -4,11 +4,10 @@ import textwrap
 from django.test import TestCase
 
 from core.models import ObjectType
-from extras.models import CustomField
 from extras.choices import CustomFieldTypeChoices
-
-from netbox_dns.models import Zone, Record, NameServer
+from extras.models import CustomField
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import NameServer, Record, Zone
 
 
 def split_text_value(value):

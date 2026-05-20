@@ -1,22 +1,21 @@
 from rest_framework import status
 
-from utilities.testing import create_tags, post_data
-from tenancy.models import Tenant
 from netbox.choices import CSVDelimiterChoices, ImportFormatChoices
-
-from netbox_dns.tests.custom import ModelViewTestCase
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices, ZoneStatusChoices
 from netbox_dns.models import (
+    DNSSECPolicy,
+    NameServer,
+    Record,
+    RecordTemplate,
+    Registrar,
+    RegistrationContact,
     View,
     Zone,
-    Record,
-    NameServer,
-    RegistrationContact,
-    Registrar,
     ZoneTemplate,
-    RecordTemplate,
-    DNSSECPolicy,
 )
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices, ZoneStatusChoices
+from netbox_dns.tests.custom import ModelViewTestCase
+from tenancy.models import Tenant
+from utilities.testing import create_tags, post_data
 
 
 def record_template_applied(record, record_template):

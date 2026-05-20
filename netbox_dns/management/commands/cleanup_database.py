@@ -1,9 +1,8 @@
+from django.core.management.base import BaseCommand
 from netaddr import IPAddress
 
-from django.core.management.base import BaseCommand
-
-from netbox_dns.models import Zone, Record
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import Record, Zone
 
 
 class Command(BaseCommand):

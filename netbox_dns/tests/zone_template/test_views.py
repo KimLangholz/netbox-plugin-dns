@@ -1,15 +1,14 @@
-from utilities.testing import ViewTestCases, create_tags
-
-from netbox_dns.tests.custom import ModelViewTestCase
+from netbox_dns.choices import RecordTypeChoices
 from netbox_dns.models import (
-    ZoneTemplate,
-    RecordTemplate,
+    DNSSECPolicy,
     NameServer,
+    RecordTemplate,
     Registrar,
     RegistrationContact,
-    DNSSECPolicy,
+    ZoneTemplate,
 )
-from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.tests.custom import ModelViewTestCase
+from utilities.testing import ViewTestCases, create_tags
 
 
 class ZoneTemplateViewTestCase(

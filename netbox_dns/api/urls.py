@@ -1,18 +1,17 @@
 from netbox.api.routers import NetBoxRouter
-
 from netbox_dns.api.views import (
-    NetBoxDNSRootView,
-    ViewViewSet,
-    ZoneViewSet,
+    DNSSECKeyTemplateViewSet,
+    DNSSECPolicyViewSet,
     NameServerViewSet,
+    NetBoxDNSRootView,
+    PrefixViewSet,
+    RecordTemplateViewSet,
     RecordViewSet,
     RegistrarViewSet,
     RegistrationContactViewSet,
+    ViewViewSet,
     ZoneTemplateViewSet,
-    RecordTemplateViewSet,
-    DNSSECKeyTemplateViewSet,
-    DNSSECPolicyViewSet,
-    PrefixViewSet,
+    ZoneViewSet,
 )
 
 router = NetBoxRouter()

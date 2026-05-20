@@ -1,19 +1,17 @@
 from django.test import TestCase
 
-from tenancy.models import Tenant, TenantGroup
-from utilities.testing import ChangeLoggedFilterSetTests
-
+from netbox_dns.choices import ZoneEPPStatusChoices, ZoneStatusChoices
+from netbox_dns.filtersets import ZoneFilterSet
 from netbox_dns.models import (
-    Zone,
-    View,
+    DNSSECPolicy,
     NameServer,
     Registrar,
     RegistrationContact,
-    DNSSECPolicy,
+    View,
+    Zone,
 )
-from netbox_dns.choices import ZoneStatusChoices, ZoneEPPStatusChoices
-
-from netbox_dns.filtersets import ZoneFilterSet
+from tenancy.models import Tenant, TenantGroup
+from utilities.testing import ChangeLoggedFilterSetTests
 
 
 class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):

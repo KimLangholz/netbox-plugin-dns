@@ -4,13 +4,12 @@ from django.utils.translation import gettext_lazy as _
 from netbox.forms import (
     PrimaryModelBulkEditForm,
     PrimaryModelFilterSetForm,
-    PrimaryModelImportForm,
     PrimaryModelForm,
+    PrimaryModelImportForm,
 )
+from netbox_dns.models import Registrar
 from utilities.forms.fields import TagFilterField
 from utilities.forms.rendering import FieldSet
-
-from netbox_dns.models import Registrar
 
 __all__ = (
     "RegistrarForm",

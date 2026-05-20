@@ -1,16 +1,14 @@
 import dns
-from dns import name as dns_name
-
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.core.validators import MaxValueValidator
+from dns import name as dns_name
 
 from netbox.models import PrimaryModel
-from netbox.search import SearchIndex, register_search
 from netbox.plugins.utils import get_plugin_config
-
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices
+from netbox.search import SearchIndex, register_search
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
 from netbox_dns.validators import validate_generic_name, validate_record_value
 
 from .record import Record

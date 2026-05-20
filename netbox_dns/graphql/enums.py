@@ -1,15 +1,15 @@
 import strawberry
 
 from netbox_dns.choices import (
-    RecordTypeChoices,
-    RecordClassChoices,
-    RecordStatusChoices,
-    ZoneStatusChoices,
-    DNSSECPolicyDigestChoices,
-    DNSSECPolicyStatusChoices,
-    DNSSECKeyTemplateTypeChoices,
     DNSSECKeyTemplateAlgorithmChoices,
     DNSSECKeyTemplateKeySizeChoices,
+    DNSSECKeyTemplateTypeChoices,
+    DNSSECPolicyDigestChoices,
+    DNSSECPolicyStatusChoices,
+    RecordClassChoices,
+    RecordStatusChoices,
+    RecordTypeChoices,
+    ZoneStatusChoices,
 )
 
 __all__ = (

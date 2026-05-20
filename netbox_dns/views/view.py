@@ -1,20 +1,19 @@
-from utilities.views import ViewTab, register_model_view
 from django.utils.translation import gettext_lazy as _
 
-from netbox.views import generic
 from ipam.models import Prefix
-
-from netbox_dns.models import View, Zone
+from netbox.views import generic
 from netbox_dns.filtersets import ViewFilterSet, ZoneFilterSet
 from netbox_dns.forms import (
-    ViewForm,
-    ViewFilterForm,
-    ViewImportForm,
     ViewBulkEditForm,
+    ViewFilterForm,
+    ViewForm,
+    ViewImportForm,
     ViewPrefixEditForm,
 )
+from netbox_dns.models import View, Zone
 from netbox_dns.tables import ViewTable, ZoneTable
 from netbox_dns.utilities import get_views_by_prefix
+from utilities.views import ViewTab, register_model_view
 
 __all__ = (
     "ViewView",

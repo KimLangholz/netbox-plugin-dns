@@ -1,9 +1,8 @@
-from dns import rdatatype, rdataclass
-
 from django.utils.translation import gettext_lazy as _
+from dns import rdataclass, rdatatype
 
-from utilities.choices import ChoiceSet
 from netbox.plugins.utils import get_plugin_config
+from utilities.choices import ChoiceSet
 
 from .utilities import initialize_choice_names
 

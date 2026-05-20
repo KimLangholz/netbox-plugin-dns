@@ -1,10 +1,9 @@
-from dns import name as dns_name
-
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand
+from dns import name as dns_name
 
-from netbox_dns.models import Zone, Record
 from netbox_dns.choices import RecordStatusChoices
+from netbox_dns.models import Record, Zone
 
 
 class Command(BaseCommand):

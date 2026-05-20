@@ -1,21 +1,20 @@
-from django.db import models
 from django.core.exceptions import ValidationError
+from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from netbox.context import current_request
 from netbox.models import PrimaryModel
 from netbox.models.features import ContactsMixin
 from netbox.search import SearchIndex, register_search
-from netbox.context import current_request
-from utilities.exceptions import AbortRequest
-
 from netbox_dns.mixins import ObjectModificationMixin
 from netbox_dns.utilities import (
-    get_ip_addresses_by_view,
     check_dns_records,
-    update_dns_records,
     delete_dns_records,
+    get_ip_addresses_by_view,
     get_query_from_filter,
+    update_dns_records,
 )
+from utilities.exceptions import AbortRequest
 
 __all__ = (
     "View",

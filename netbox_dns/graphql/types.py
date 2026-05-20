@@ -3,34 +3,34 @@ from typing import Annotated
 import strawberry
 import strawberry_django
 
-from netbox.graphql.types import PrimaryObjectType
-from tenancy.graphql.types import TenantType
 from ipam.graphql.types import IPAddressType, PrefixType
 from netbox.graphql.scalars import BigInt
-
+from netbox.graphql.types import PrimaryObjectType
 from netbox_dns.models import (
-    NameServer,
-    View,
-    Zone,
-    Record,
     DNSSECKeyTemplate,
     DNSSECPolicy,
-    RegistrationContact,
-    Registrar,
-    ZoneTemplate,
+    NameServer,
+    Record,
     RecordTemplate,
+    Registrar,
+    RegistrationContact,
+    View,
+    Zone,
+    ZoneTemplate,
 )
+from tenancy.graphql.types import TenantType
+
 from .filters import (
-    NetBoxDNSNameServerFilter,
-    NetBoxDNSViewFilter,
-    NetBoxDNSZoneFilter,
-    NetBoxDNSRecordFilter,
     NetBoxDNSDNSSECKeyTemplateFilter,
     NetBoxDNSDNSSECPolicyFilter,
-    NetBoxDNSRegistrationContactFilter,
-    NetBoxDNSRegistrarFilter,
-    NetBoxDNSZoneTemplateFilter,
+    NetBoxDNSNameServerFilter,
+    NetBoxDNSRecordFilter,
     NetBoxDNSRecordTemplateFilter,
+    NetBoxDNSRegistrarFilter,
+    NetBoxDNSRegistrationContactFilter,
+    NetBoxDNSViewFilter,
+    NetBoxDNSZoneFilter,
+    NetBoxDNSZoneTemplateFilter,
 )
 
 

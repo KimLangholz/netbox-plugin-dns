@@ -2,16 +2,15 @@ import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import (
-    PrimaryModelTable,
     ActionsColumn,
     BooleanColumn,
+    PrimaryModelTable,
     TagColumn,
     TemplateColumn,
 )
-from tenancy.tables import TenancyColumnsMixin
-
 from netbox_dns.models import RecordTemplate
 from netbox_dns.utilities import value_to_unicode
+from tenancy.tables import TenancyColumnsMixin
 
 __all__ = (
     "RecordTemplateTable",

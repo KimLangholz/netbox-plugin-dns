@@ -1,19 +1,17 @@
-from netaddr import IPNetwork
-
-from django.urls import reverse
 from django.core import management
+from django.urls import reverse
+from netaddr import IPNetwork
 from rest_framework import status
 
-from utilities.testing import APITestCase
-
-from ipam.models import Prefix, IPAddress, VRF
-from netbox_dns.models import (
-    View,
-    NameServer,
-    Zone,
-    Record,
-)
+from ipam.models import VRF, IPAddress, Prefix
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import (
+    NameServer,
+    Record,
+    View,
+    Zone,
+)
+from utilities.testing import APITestCase
 
 
 class DNSsyncIPAMAPITestCase(APITestCase):
