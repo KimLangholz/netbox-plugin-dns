@@ -77,7 +77,8 @@ def normalize_name(name):
 
     try:
         return (
-            dns_name.from_text(name, origin=dns_name.root)
+            dns_name
+            .from_text(name, origin=dns_name.root)
             .relativize(dns_name.root)
             .to_text()
         )

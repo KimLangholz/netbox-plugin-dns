@@ -59,15 +59,13 @@ def ipam_dnssync_ipaddress_post_clean(instance, **kwargs):
     if ENFORCE_UNIQUE_RECORDS and instance.status in IPADDRESS_ACTIVE_STATUS:
         for ip_address in duplicate_addresses.only("custom_field_data"):
             if not ip_address.custom_field_data.get("ipaddress_dns_disabled"):
-                raise ValidationError(
-                    {
-                        "dns_name": _(
-                            "Unique DNS records are enforced and there is already "
-                            "an active IP address {address} with DNS name {name}. Please choose "
-                            "a different name or disable record creation for this IP address."
-                        ).format(address=instance.address, name=instance.dns_name)
-                    }
-                )
+                raise ValidationError({
+                    "dns_name": _(
+                        "Unique DNS records are enforced and there is already "
+                        "an active IP address {address} with DNS name {name}. Please choose "
+                        "a different name or disable record creation for this IP address."
+                    ).format(address=instance.address, name=instance.dns_name)
+                })
 
     # +
     # Check NetBox DNS record permission for changes to IPAddress custom fields

@@ -303,9 +303,10 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         for i in range(3):
             cls.zones[i].nameservers.set([cls.nameservers[0].pk, cls.nameservers[1].pk])
         for i in range(3):
-            cls.zones[3 + i].nameservers.set(
-                [cls.nameservers[1].pk, cls.nameservers[2].pk]
-            )
+            cls.zones[3 + i].nameservers.set([
+                cls.nameservers[1].pk,
+                cls.nameservers[2].pk,
+            ])
 
     def test_name(self):
         params = {"name": ["zone1.example.com", "zone2.example.com"]}
