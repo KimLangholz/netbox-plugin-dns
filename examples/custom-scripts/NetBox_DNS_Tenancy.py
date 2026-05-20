@@ -2,7 +2,6 @@
 
 from extras.scripts import Script
 from ipam.models import IPAddress
-
 from netbox_dns.models import Record
 
 name = "NetBox DNS Tenancy Synchronizer"

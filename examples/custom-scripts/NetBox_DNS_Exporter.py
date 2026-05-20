@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
-from netbox_dns.models import View, Zone, Record
+from jinja2 import DictLoader, Environment
 
-from extras.scripts import Script, StringVar, BooleanVar
-from jinja2 import Environment, DictLoader
+from extras.scripts import BooleanVar, Script, StringVar
+from netbox_dns.models import Record, View, Zone
 
 
 def rm_tree(path):

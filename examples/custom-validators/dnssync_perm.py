@@ -10,9 +10,10 @@
 #
 
 from django.db import transaction
+from django.db.models.base import Model
+
 from extras.validators import CustomValidator
 from netbox.plugins.utils import get_plugin_config
-from django.db.models.base import Model
 
 
 def name_is_allowed(dns_name, ipaddress, request):

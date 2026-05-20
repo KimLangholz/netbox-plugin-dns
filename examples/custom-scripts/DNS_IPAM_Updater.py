@@ -3,11 +3,10 @@
 import dns
 from dns import name as dns_name
 
-from ipam.models import IPAddress, VRF
-from extras.scripts import Script, ObjectVar, BooleanVar
-
-from netbox_dns.models import Record, View, Zone
+from extras.scripts import BooleanVar, ObjectVar, Script
+from ipam.models import VRF, IPAddress
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import Record, View, Zone
 
 name = "NetBox DNS IPAM Import/Export"
 
