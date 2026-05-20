@@ -28,5 +28,5 @@ def dnssec_policy_key_templates_changed(action, instance, pk_set, **kwargs):
     except ValidationError as exc:
         if request is not None:
             raise AbortRequest(exc)
-        else:
-            raise exc
+
+        raise exc

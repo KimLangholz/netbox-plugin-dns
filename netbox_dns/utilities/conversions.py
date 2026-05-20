@@ -91,10 +91,10 @@ def network_to_reverse(network):
     try:
         ip_network = IPNetwork(network)
     except AddrFormatError:
-        return
+        return None
 
     if ip_network.first == ip_network.last:
-        return
+        return None
 
     labels = None
     match ip_network.version:
@@ -105,10 +105,12 @@ def network_to_reverse(network):
             if not ip_network.prefixlen % 4:
                 labels = 3 + ip_network.prefixlen // 4
         case _:
-            return
+            return None
 
     if labels:
         return ".".join(ip_network[0].reverse_dns.split(".")[-labels:])
+
+    return None
 
 
 def regex_from_list(names):

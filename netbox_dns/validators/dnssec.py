@@ -79,7 +79,7 @@ def validate_key_template_lifetime(key_template, policy, raise_exception=True):
     key_lifetime = key_template.lifetime
 
     if not key_lifetime:
-        return
+        return None
 
     dnskey_ttl = policy.get_effective_value("dnskey_ttl")
     publish_safety = policy.get_effective_value("publish_safety")

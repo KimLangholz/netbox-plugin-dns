@@ -86,15 +86,13 @@ class NetBoxDNSGraphQLMixin:
             else:
                 fields_string += f"{field.name}\n"
 
-        query = f"""
+        return f"""
         {{
             {name}{filter_string} {{
                 {fields_string}
             }}
         }}
         """
-
-        return query
 
 
 class ModelViewTestCase(NetBoxModelViewTestCase):

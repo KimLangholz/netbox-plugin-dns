@@ -27,7 +27,7 @@ def validate_record_value(record):
             name.to_unicode()
         except dns_name.IDNAException as exc:
             raise ValidationError(
-                "{name} is not a valid IDN: {error}.".format(
+                _("{name} is not a valid IDN: {error}.").format(
                     name=name.to_text(), error=exc
                 )
             )

@@ -179,8 +179,8 @@ def ipam_dnssync_prefix_pre_delete(instance, **kwargs):
                         "DNS View assignments for this and the parent prefix"
                     ).format(errors=exc.messages[0])
                 )
-            else:
-                raise exc
+
+            raise exc
 
     # +
     # CAUTION: This only works because the NetBox workaround for an ancient

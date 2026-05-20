@@ -350,13 +350,11 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             if ptr_zone is not None:
                 return ptr_zone
 
-        ptr_zone = (
+        return (
             self.zone.view.zones.filter(arpa_network__net_contains=self.value)
             .order_by("arpa_network__net_mask_length")
             .last()
         )
-
-        return ptr_zone
 
     @property
     def is_delegation_record(self):
@@ -638,7 +636,7 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         if data is None:
             return False, True
 
-        if all((getattr(self, attr) == data[attr] for attr in data.keys())):
+        if all(getattr(self, attr) == data[attr] for attr in data.keys()):
             return False, False
 
         for attr, value in data.items():
@@ -653,7 +651,7 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         data = record_data_from_ip_address(ip_address, zone)
 
         if data is None:
-            return
+            return None
 
         return Record(
             zone=zone,

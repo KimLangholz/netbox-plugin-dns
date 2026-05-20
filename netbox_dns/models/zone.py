@@ -624,6 +624,8 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
                 "Nameserver {ns} does not have an active address record in zone {zone}"
             ).format(ns=nameserver.name, zone=ns_zone)
 
+        return None
+
     def check_nameservers(self):
         nameservers = self.nameservers.all()
 

@@ -73,7 +73,7 @@ class ZoneTemplateUpdateMixin:
 
         if (template := self.cleaned_data.get("template")) is None:
             self._check_soa_mname()
-            return
+            return None
 
         if not self.cleaned_data.get("nameservers") and template.nameservers.all():
             self.cleaned_data["nameservers"] = template.nameservers.all()
@@ -90,7 +90,7 @@ class ZoneTemplateUpdateMixin:
         self._check_soa_mname()
 
         if self.errors:
-            return
+            return None
 
         saved_events_queue = events_queue.get()
 
@@ -417,8 +417,8 @@ class ZoneForm(ZoneTemplateUpdateMixin, TenancyForm, PrimaryModelForm):
         name = self.cleaned_data["name"]
         if reverse_name := network_to_reverse(name):
             return reverse_name
-        else:
-            return name
+
+        return name
 
 
 class ZoneFilterForm(TenancyFilterForm, PrimaryModelFilterSetForm):

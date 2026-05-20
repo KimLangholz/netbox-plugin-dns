@@ -35,8 +35,7 @@ class RecordTypeNames:
         )
 
     def __iter__(self):
-        for rdtype_name in self.record_type_names:
-            yield rdtype_name
+        yield from self.record_type_names
 
 
 class RecordSelectableTypeNames:
@@ -52,8 +51,7 @@ class RecordSelectableTypeNames:
         )
 
     def __iter__(self):
-        for rdtype_name in self.record_type_names:
-            yield rdtype_name
+        yield from self.record_type_names
 
 
 class RecordClassNames:

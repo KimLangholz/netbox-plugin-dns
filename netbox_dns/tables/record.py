@@ -158,14 +158,15 @@ class ManagedRecordTable(RecordBaseTable):
     def value_related_ip_address(self, record):
         if record.ipam_ip_address is not None:
             return record.ipam_ip_address
-        elif hasattr(record, "address_records"):
+
+        if hasattr(record, "address_records"):
             address_record = record.address_records.filter(
                 ipam_ip_address__isnull=False
             ).first()
             if address_record is not None:
                 return address_record.ipam_ip_address
 
-            return None
+        return None
 
 
 class RelatedRecordTable(RecordBaseTable):

@@ -330,11 +330,9 @@ def get_ip_addresses_by_zone(zone):
     are the IPAddress objects in prefixes assigned to the same view, if the
     'dns_name' attribute of the IPAddress object ends in the zone's name.
     """
-    queryset = get_ip_addresses_by_view(zone.view).filter(
+    return get_ip_addresses_by_view(zone.view).filter(
         dns_name__regex=rf"\.{re.escape(zone.name)}\.?$"
     )
-
-    return queryset
 
 
 def check_record_permission(add=True, change=True, delete=True):
@@ -386,5 +384,5 @@ def get_cidr_address(ip_address):
     # -
     if type(ip_address.address) is str:
         return IPNetwork(ip_address.address)
-    else:
-        return ip_address.address
+
+    return ip_address.address
