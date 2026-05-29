@@ -920,6 +920,7 @@ class ZoneBulkEditForm(PrimaryModelBulkEditForm):
         "registrar",
         "expiration_date",
         "domain_status",
+        "dnssec_policy",
         "registry_domain_id",
         "registrant",
         "admin_c",
