@@ -21,16 +21,6 @@ class ZoneAPITestCase(
 ):
     model = Zone
 
-    # +
-    # TODO: Fix the root cause and remove this workaround
-    # -
-    graphql_auto_filter_required = False
-
-    # +
-    # TODO: Fix the root cause and remove this workaround
-    # -
-    graphql_auto_filter_required = False
-
     brief_fields = [
         "active",
         "description",

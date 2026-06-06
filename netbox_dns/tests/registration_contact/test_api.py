@@ -19,12 +19,6 @@ class RegistrationContactAPITestCase(
     APIViewTestCases.GraphQLTestCase,
 ):
     model = RegistrationContact
-
-    # +
-    # TODO: Fix the root cause and remove this workaround
-    # -
-    graphql_auto_filter_required = False
-
     brief_fields = ["contact_id", "description", "display", "id", "name", "url"]
 
     create_data = [

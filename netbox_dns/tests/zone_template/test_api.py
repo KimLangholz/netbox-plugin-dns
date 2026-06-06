@@ -28,11 +28,6 @@ class ZoneTemplateAPITestCase(
 ):
     model = ZoneTemplate
 
-    # +
-    # TODO: Fix the root cause and remove this workaround
-    # -
-    graphql_auto_filter_required = False
-
     brief_fields = [
         "description",
         "display",
