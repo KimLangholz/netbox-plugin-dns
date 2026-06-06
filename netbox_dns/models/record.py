@@ -317,6 +317,10 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         return self.type == RecordTypeChoices.PTR
 
     @property
+    def rrset(self):
+        return self.zone.records.filter(type=self.type, name=self.name)
+
+    @property
     def rfc2317_ptr_name(self):
         return self.value.split(".")[-1]
 

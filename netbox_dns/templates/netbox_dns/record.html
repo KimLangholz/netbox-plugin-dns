@@ -149,6 +149,18 @@
                 </tr>
             </table>
         </div>
+        {% if rrset_record_table %}
+            <div class="card">
+                {% if rrset_record_table.rows|length == 1 %}
+                    <h5 class="card-header">{% trans "Other Record in the RRSET" %}</h5>
+                {% else %}
+                    <h5 class="card-header">{% trans "Other Records in the RRSET" %}</h5>
+                {% endif %}
+                <div class="table-responsive">
+                    {% render_table rrset_record_table 'inc/table.html' %}
+                </div>
+            </div>
+        {% endif %}
         {% if cname_target_table %}
             <div class="card">
                 {% if cname_target_table.rows|length == 1 %}
