@@ -162,6 +162,14 @@ class RecordView(generic.ObjectView):
             if address_record is not None:
                 context["ipam_ip_address"] = address_record.ipam_ip_address
 
+        if instance.rrset.count() > 1:
+            rrset_record_table = RelatedRecordTable(
+                data=instance.rrset.exclude(pk=instance.pk)
+            )
+            rrset_record_table.configure(request)
+
+            context["rrset_record_table"] = rrset_record_table
+
         if not instance.managed:
             try:
                 instance.check_zone_cut_conflict()
