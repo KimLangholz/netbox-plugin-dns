@@ -169,23 +169,31 @@ class ZoneTemplateFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         )
         ZoneTemplate.objects.bulk_create(cls.zone_templates)
         for i in range(3):
-            cls.zone_templates[i].nameservers.set([
-                cls.nameservers[0].pk,
-                cls.nameservers[1].pk,
-            ])
-            cls.zone_templates[i].record_templates.set([
-                cls.record_templates[0].pk,
-                cls.record_templates[1].pk,
-            ])
+            cls.zone_templates[i].nameservers.set(
+                [
+                    cls.nameservers[0].pk,
+                    cls.nameservers[1].pk,
+                ]
+            )
+            cls.zone_templates[i].record_templates.set(
+                [
+                    cls.record_templates[0].pk,
+                    cls.record_templates[1].pk,
+                ]
+            )
         for i in range(3):
-            cls.zone_templates[3 + i].nameservers.set([
-                cls.nameservers[1].pk,
-                cls.nameservers[2].pk,
-            ])
-            cls.zone_templates[3 + i].record_templates.set([
-                cls.record_templates[1].pk,
-                cls.record_templates[2].pk,
-            ])
+            cls.zone_templates[3 + i].nameservers.set(
+                [
+                    cls.nameservers[1].pk,
+                    cls.nameservers[2].pk,
+                ]
+            )
+            cls.zone_templates[3 + i].record_templates.set(
+                [
+                    cls.record_templates[1].pk,
+                    cls.record_templates[2].pk,
+                ]
+            )
 
     def test_name(self):
         params = {"name": ["Zone Template 1", "Zone Template 3"]}

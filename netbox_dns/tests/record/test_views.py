@@ -344,9 +344,9 @@ class RecordViewTestCase(
 
         zone = Zone.objects.create(name="example.com", **self.zone_data)
 
-        self.zones[0].nameservers.set((
-            NameServer.objects.create(name="ns1.zone1.example.com"),
-        ))
+        self.zones[0].nameservers.set(
+            (NameServer.objects.create(name="ns1.zone1.example.com"),)
+        )
 
         Record.objects.create(
             name="zone1",
@@ -400,9 +400,9 @@ class RecordViewTestCase(
     def test_warning_mask_record_glue_aaaa_ok(self):
         self.add_permissions("netbox_dns.view_record")
 
-        self.zones[0].nameservers.set((
-            NameServer.objects.create(name="ns1.zone1.example.com"),
-        ))
+        self.zones[0].nameservers.set(
+            (NameServer.objects.create(name="ns1.zone1.example.com"),)
+        )
 
         zone = Zone.objects.create(name="example.com", **self.zone_data)
         Record.objects.create(

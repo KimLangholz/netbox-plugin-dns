@@ -342,10 +342,12 @@ class RecordNameValidationTestCase(TestCase):
         zone = self.zones[5]
         child_zone = self.zones[0]
 
-        child_zone.nameservers.set((
-            NameServer.objects.create(name="ns1.zone1.example.com"),
-            NameServer.objects.create(name="ns2.zone1.example.com"),
-        ))
+        child_zone.nameservers.set(
+            (
+                NameServer.objects.create(name="ns1.zone1.example.com"),
+                NameServer.objects.create(name="ns2.zone1.example.com"),
+            )
+        )
 
         Record.objects.create(
             name="zone1",

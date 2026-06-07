@@ -115,11 +115,13 @@ class RecordView(generic.ObjectView):
                 zone=parent_zone,
                 active=True,
             )
-            cname_records = cname_records.union({
-                record
-                for record in parent_cname_records
-                if record.value_fqdn == instance.fqdn
-            })
+            cname_records = cname_records.union(
+                {
+                    record
+                    for record in parent_cname_records
+                    if record.value_fqdn == instance.fqdn
+                }
+            )
 
         if cname_records:
             return RelatedRecordTable(

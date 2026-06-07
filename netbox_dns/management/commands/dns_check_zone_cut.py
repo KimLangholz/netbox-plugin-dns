@@ -38,8 +38,7 @@ class Command(BaseCommand):
                             name__endswith=record.fqdn.rstrip(".")
                         ).last()
                         new_name = (
-                            dns_name
-                            .from_text(record.fqdn)
+                            dns_name.from_text(record.fqdn)
                             .relativize(dns_name.from_text(new_zone.name))
                             .to_text()
                         )

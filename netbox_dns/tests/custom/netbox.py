@@ -51,26 +51,37 @@ class NetBoxDNSGraphQLMixin:
             strawberry_django.fields.types.DjangoImageType,
         )
         for field in type_class.__strawberry_definition__.fields:
-            if (
-                field.type in file_fields or (
-                    type(field.type) is StrawberryOptional and field.type.of_type in file_fields
-                )
+            if field.type in file_fields or (
+                type(field.type) is StrawberryOptional
+                and field.type.of_type in file_fields
             ):
                 # image / file fields nullable or not...
                 fields_string += f"{field.name} {{ name }}\n"
-            elif type(field.type) is StrawberryList and type(field.type.of_type) is LazyType:
+            elif (
+                type(field.type) is StrawberryList
+                and type(field.type.of_type) is LazyType
+            ):
                 # List of related objects (queryset)
                 fields_string += f"{field.name} {{ id }}\n"
-            elif type(field.type) is StrawberryList and type(field.type.of_type) is StrawberryUnion:
+            elif (
+                type(field.type) is StrawberryList
+                and type(field.type.of_type) is StrawberryUnion
+            ):
                 # this would require a fragment query
                 continue
             elif type(field.type) is StrawberryUnion:
                 # this would require a fragment query
                 continue
-            elif type(field.type) is StrawberryOptional and type(field.type.of_type) is StrawberryUnion:
+            elif (
+                type(field.type) is StrawberryOptional
+                and type(field.type.of_type) is StrawberryUnion
+            ):
                 # this would require a fragment query
                 continue
-            elif type(field.type) is StrawberryOptional and type(field.type.of_type) is LazyType:
+            elif (
+                type(field.type) is StrawberryOptional
+                and type(field.type.of_type) is LazyType
+            ):
                 fields_string += f"{field.name} {{ id }}\n"
             elif hasattr(field, "is_relation") and field.is_relation:
                 # Ignore private fields
@@ -78,7 +89,9 @@ class NetBoxDNSGraphQLMixin:
                     continue
                 # Note: StrawberryField types do not have is_relation
                 fields_string += f"{field.name} {{ id }}\n"
-            elif inspect.isclass(field.type) and issubclass(field.type, IPAddressFamilyType):
+            elif inspect.isclass(field.type) and issubclass(
+                field.type, IPAddressFamilyType
+            ):
                 fields_string += f"{field.name} {{ value, label }}\n"
             else:
                 fields_string += f"{field.name}\n"

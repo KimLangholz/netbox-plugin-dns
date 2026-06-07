@@ -121,9 +121,11 @@ class RecordTemplate(PrimaryModel):
                     ),
                 )
             except ValidationError as exc:
-                raise ValidationError({
-                    "record_name": exc,
-                })
+                raise ValidationError(
+                    {
+                        "record_name": exc,
+                    }
+                )
 
     def validate_value(self):
         try:
@@ -150,11 +152,13 @@ class RecordTemplate(PrimaryModel):
         try:
             record = Record.objects.create(**record_data)
         except ValidationError as exc:
-            raise ValidationError({
-                None: _(
-                    "Error while processing record template {template}: {error}"
-                ).format(template=self, error=exc.messages[0])
-            })
+            raise ValidationError(
+                {
+                    None: _(
+                        "Error while processing record template {template}: {error}"
+                    ).format(template=self, error=exc.messages[0])
+                }
+            )
 
         if tags := self.tags.all():
             record.tags.set(tags)

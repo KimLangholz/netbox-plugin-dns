@@ -182,9 +182,11 @@ class ZoneTemplate(PrimaryModel):
                 dns_name.from_text(self.soa_rname, origin=dns_name.root)
                 validate_rname(self.soa_rname)
             except (DNSException, ValidationError) as exc:
-                raise ValidationError({
-                    "soa_rname": exc,
-                })
+                raise ValidationError(
+                    {
+                        "soa_rname": exc,
+                    }
+                )
 
 
 @register_search
