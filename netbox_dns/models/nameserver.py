@@ -83,16 +83,20 @@ class NameServer(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         try:
             self.name = normalize_name(self.name)
         except NameFormatError as exc:
-            raise ValidationError({
-                "name": str(exc),
-            })
+            raise ValidationError(
+                {
+                    "name": str(exc),
+                }
+            )
 
         try:
             validate_fqdn(self.name)
         except ValidationError as exc:
-            raise ValidationError({
-                "name": exc,
-            })
+            raise ValidationError(
+                {
+                    "name": exc,
+                }
+            )
 
         super().clean(*args, **kwargs)
 

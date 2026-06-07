@@ -113,9 +113,11 @@ class AXFRImporter(Script):
             )
             return
 
-        keyring = tsigkeyring.from_text({
-            tsig_key_name: tsig_key,
-        })
+        keyring = tsigkeyring.from_text(
+            {
+                tsig_key_name: tsig_key,
+            }
+        )
 
         nameserver = data.get("nameserver")
         relativize = data.get("relativize_names")

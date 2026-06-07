@@ -81,11 +81,13 @@ class View(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             and not self.default_view
             and not View.objects.filter(default_view=True).exclude(pk=self.pk).exists()
         ):
-            raise ValidationError({
-                "default_view": _(
-                    "Please select a different view as default view to change this setting!"
-                )
-            })
+            raise ValidationError(
+                {
+                    "default_view": _(
+                        "Please select a different view as default view to change this setting!"
+                    )
+                }
+            )
 
         if "ip_address_filter" in changed_fields and self.get_saved_value(
             "ip_address_filter"
@@ -96,9 +98,11 @@ class View(ObjectModificationMixin, ContactsMixin, PrimaryModel):
                 ):
                     check_dns_records(ip_address, view=self)
             except ValidationError as exc:
-                raise ValidationError({
-                    "ip_address_filter": exc.messages,
-                })
+                raise ValidationError(
+                    {
+                        "ip_address_filter": exc.messages,
+                    }
+                )
 
         super().clean(*args, **kwargs)
 
