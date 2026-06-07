@@ -280,3 +280,56 @@ class RecordAPITestCase(
 
         response = self.client.delete(url, **self.header)
         self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+
+    def test_record_expired(self):
+        record = Record.objects.create(
+            name="name1",
+            zone=self.zones[0],
+            type=RecordTypeChoices.AAAA,
+            value="2001:db8::1",
+            expiration_date="2026-06-02",
+        )
+
+        url = reverse(
+            "plugins-api:netbox_dns-api:record-detail", kwargs={"pk": record.pk}
+        )
+        self.add_permissions("netbox_dns.view_record")
+
+        response = self.client.get(url, **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertTrue(response.json().get("expired"))
+
+    def test_record_expired_future_false(self):
+        record = Record.objects.create(
+            name="name1",
+            zone=self.zones[0],
+            type=RecordTypeChoices.AAAA,
+            value="2001:db8::1",
+            expiration_date="2226-06-30",
+        )
+
+        url = reverse(
+            "plugins-api:netbox_dns-api:record-detail", kwargs={"pk": record.pk}
+        )
+        self.add_permissions("netbox_dns.view_record")
+
+        response = self.client.get(url, **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertFalse(response.json().get("expired"))
+
+    def test_record_expired_no_expiration_date_false(self):
+        record = Record.objects.create(
+            name="name1",
+            zone=self.zones[0],
+            type=RecordTypeChoices.AAAA,
+            value="2001:db8::1",
+        )
+
+        url = reverse(
+            "plugins-api:netbox_dns-api:record-detail", kwargs={"pk": record.pk}
+        )
+        self.add_permissions("netbox_dns.view_record")
+
+        response = self.client.get(url, **self.header)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertFalse(response.json().get("expired"))
