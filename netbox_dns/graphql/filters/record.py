@@ -1,9 +1,10 @@
+from datetime import date
 from typing import TYPE_CHECKING, Annotated
 
 import strawberry
 import strawberry_django
 from strawberry.scalars import ID
-from strawberry_django import FilterLookup
+from strawberry_django import DateFilterLookup, FilterLookup
 
 try:
     from strawberry_django import StrFilterLookup
@@ -58,6 +59,7 @@ class NetBoxDNSRecordFilter(
         | None
     ) = strawberry_django.filter_field()
     value: StrFilterLookup[str] | None = strawberry_django.filter_field()
+    expiration_date: DateFilterLookup[date] | None = strawberry_django.filter_field()
     disable_ptr: FilterLookup[bool] | None = strawberry_django.filter_field()
     status: (
         Annotated[

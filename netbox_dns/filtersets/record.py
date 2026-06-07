@@ -1,6 +1,7 @@
 import django_filters
 import netaddr
 from django.db.models import Q
+from django.utils.timezone import datetime
 
 from ipam.models import IPAddress
 from netbox.filtersets import PrimaryModelFilterSet
@@ -73,6 +74,10 @@ class RecordFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
         method="filter_ip_address",
     )
     active = django_filters.BooleanFilter()
+    expiration_date = django_filters.DateFromToRangeFilter()
+    expired = django_filters.BooleanFilter(
+        method="filter_expired",
+    )
 
     def filter_ip_address(self, queryset, name, value):
         if not value:
@@ -87,6 +92,12 @@ class RecordFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
             return queryset.filter(ip_address__in=ip_addresses)
         except (netaddr.AddrFormatError, ValueError):
             return queryset.none()
+
+    def filter_expired(self, queryset, name, value):
+        if value:
+            return queryset.filter(expiration_date__lt=datetime.now())
+
+        return queryset.exclude(expiration_date__lt=datetime.now())
 
     def search(self, queryset, name, value):
         if not value.strip():

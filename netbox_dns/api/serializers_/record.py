@@ -41,6 +41,8 @@ class RecordSerializer(PrimaryModelSerializer):
             "tenant",
             "ipam_ip_address",
             "absolute_value",
+            "expiration_date",
+            "expired",
         )
 
         brief_fields = (
@@ -57,6 +59,7 @@ class RecordSerializer(PrimaryModelSerializer):
             "description",
             "managed",
             "active",
+            "expired",
         )
 
     url = serializers.HyperlinkedIdentityField(
@@ -102,3 +105,7 @@ class RecordSerializer(PrimaryModelSerializer):
         required=False,
         allow_null=True,
     )
+    expired = serializers.SerializerMethodField()
+
+    def get_expired(self, instance):
+        return instance.is_expired

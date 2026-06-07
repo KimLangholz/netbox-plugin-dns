@@ -52,6 +52,7 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 type=RecordTypeChoices.AAAA,
                 value="fe80::dead:beef",
                 tenant=cls.tenants[0],
+                expiration_date="2026-05-21",
             ),
             Record(
                 name="name2",
@@ -60,6 +61,7 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 type=RecordTypeChoices.A,
                 value="10.0.0.42",
                 tenant=cls.tenants[0],
+                expiration_date="2026-05-21",
             ),
             Record(
                 name="name3",
@@ -69,6 +71,7 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 value="fe80::dead:beef",
                 tenant=cls.tenants[1],
                 managed=True,
+                expiration_date="2026-06-02",
             ),
             Record(
                 name="name5",
@@ -77,6 +80,7 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 type=RecordTypeChoices.TXT,
                 value="Nothing to see here",
                 status=RecordStatusChoices.STATUS_INACTIVE,
+                expiration_date="2166-01-07",
             ),
             Record(
                 name="name1",
@@ -200,6 +204,18 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
         params = {"active": False}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 5)
+
+    def test_expiration_date(self):
+        params = {"expiration_date_before": "2026-06-30"}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+        params = {"expiration_date_after": "2026-06-30"}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
+
+    def test_expired(self):
+        params = {"expired": True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+        params = {"expired": False}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 6)
 
     def test_ptr_record(self):
         Zone.objects.create(name="1.0.10.in-addr.arpa", **self.zone_data)

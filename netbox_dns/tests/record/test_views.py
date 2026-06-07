@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
@@ -63,6 +65,7 @@ class RecordViewTestCase(
                 name="name2",
                 value="192.168.1.1",
                 ttl=200,
+                expiration_date="2026-06-30",
             ),
             Record(
                 zone=cls.zones[0],
@@ -70,6 +73,7 @@ class RecordViewTestCase(
                 name="name2",
                 value="fe80:dead:beef::42",
                 ttl=86400,
+                expiration_date="2026-06-02",
             ),
             Record(
                 zone=cls.zones[4],
@@ -77,6 +81,7 @@ class RecordViewTestCase(
                 name="@",
                 value="Test Text",
                 ttl=86400,
+                expiration_date="2026-05-14",
             ),
             Record(
                 zone=cls.zones[2],
@@ -109,28 +114,29 @@ class RecordViewTestCase(
             "ttl": 86420,
             "disable_ptr": False,
             "description": "New Description",
+            "expiration_date": date(2026, 6, 30),
         }
 
         cls.csv_data = (
-            "zone,view,type,name,value,ttl",
-            "zone1.example.com,,A,@,10.10.10.10,3600",
-            "zone2.example.com,,AAAA,name4,fe80::dead:beef,7200",
-            "zone1.example.com,,CNAME,dns,name1.zone2.example.com,100",
-            "zone2.example.com,,TXT,textname,textvalue,1000",
-            "zone1.example.com,view1,A,@,10.10.10.10,3600",
-            "zone2.example.com,view1,AAAA,name4,fe80::dead:beef,7200",
-            "zone1.example.com,view1,CNAME,dns,name1.zone2.example.com,100",
-            "zone2.example.com,view1,TXT,textname,textvalue,1000",
-            "zone1.example.com,view2,A,@,10.10.10.10,3600",
-            "zone2.example.com,view2,AAAA,name4,fe80::dead:beef,7200",
-            "zone1.example.com,view2,CNAME,dns,name1.zone2.example.com,100",
-            "zone2.example.com,view2,TXT,textname,textvalue,1000",
+            "zone,view,type,name,value,ttl,expiration_date",
+            "zone1.example.com,,A,@,10.10.10.10,3600,",
+            "zone2.example.com,,AAAA,name4,fe80::dead:beef,7200,",
+            "zone1.example.com,,CNAME,dns,name1.zone2.example.com,100,",
+            "zone2.example.com,,TXT,textname,textvalue,1000,",
+            "zone1.example.com,view1,A,@,10.10.10.10,3600,2026-06-30",
+            "zone2.example.com,view1,AAAA,name4,fe80::dead:beef,7200,2026-06-02",
+            "zone1.example.com,view1,CNAME,dns,name1.zone2.example.com,100,2026-05-14",
+            "zone2.example.com,view1,TXT,textname,textvalue,1000,",
+            "zone1.example.com,view2,A,@,10.10.10.10,3600,",
+            "zone2.example.com,view2,AAAA,name4,fe80::dead:beef,7200,",
+            "zone1.example.com,view2,CNAME,dns,name1.zone2.example.com,100,",
+            "zone2.example.com,view2,TXT,textname,textvalue,1000,",
         )
 
         cls.csv_update_data = (
-            "id,zone,type,value,ttl",
-            f"{cls.records[0].pk},{cls.zones[0].name},{RecordTypeChoices.A},10.0.1.1,86442",
-            f"{cls.records[1].pk},{cls.zones[1].name},{RecordTypeChoices.AAAA},fe80:dead:beef::23,86423",
+            "id,zone,type,value,ttl,expiration_date",
+            f"{cls.records[0].pk},{cls.zones[0].name},{RecordTypeChoices.A},10.0.1.1,86442,",
+            f"{cls.records[1].pk},{cls.zones[1].name},{RecordTypeChoices.AAAA},fe80:dead:beef::23,86423,2026-06-30",
         )
 
     maxDiff = None
@@ -452,4 +458,69 @@ class RecordViewTestCase(
         self.assertRegex(
             response.content.decode(),
             "Record is masked by a child zone and may not be visible in DNS",
+        )
+
+    def test_warning_record_expired(self):
+        self.add_permissions("netbox_dns.view_record")
+
+        zone = Zone.objects.create(name="example.com", **self.zone_data)
+
+        record = Record.objects.create(
+            name="name1",
+            zone=zone,
+            type=RecordTypeChoices.AAAA,
+            value="2001:db8::1",
+            expiration_date="2026-06-02",
+        )
+
+        url = reverse("plugins:netbox_dns:record", kwargs={"pk": record.pk})
+
+        response = self.client.get(path=url)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertRegex(
+            response.content.decode(),
+            "Record is expired",
+        )
+
+    def test_warning_record_expired_future_ok(self):
+        self.add_permissions("netbox_dns.view_record")
+
+        zone = Zone.objects.create(name="example.com", **self.zone_data)
+
+        record = Record.objects.create(
+            name="name1",
+            zone=zone,
+            type=RecordTypeChoices.AAAA,
+            value="2001:db8::1",
+            expiration_date="2226-06-02",
+        )
+
+        url = reverse("plugins:netbox_dns:record", kwargs={"pk": record.pk})
+
+        response = self.client.get(path=url)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertNotRegex(
+            response.content.decode(),
+            "Record is expired",
+        )
+
+    def test_warning_record_expired_no_expiration_ok(self):
+        self.add_permissions("netbox_dns.view_record")
+
+        zone = Zone.objects.create(name="example.com", **self.zone_data)
+
+        record = Record.objects.create(
+            name="name1",
+            zone=zone,
+            type=RecordTypeChoices.AAAA,
+            value="2001:db8::1",
+        )
+
+        url = reverse("plugins:netbox_dns:record", kwargs={"pk": record.pk})
+
+        response = self.client.get(path=url)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertNotRegex(
+            response.content.decode(),
+            "Record is expired",
         )

@@ -39,11 +39,11 @@
 {% block content %}
 <div class="row">
     {% if object.managed %}
-    <div class="col col-md-12">
+        <div class="col col-md-12">
     {% else %}
-    <div class="col col-md-8">
+        <div class="col col-md-8">
     {% endif %}
-        <div class="card">
+    <div class="card">
             <h5 class="card-header">{% trans "Record" %}</h5>
             <table class="table table-hover attr-table">
                 <tr>
@@ -117,6 +117,18 @@
                     <td>{% checkmark object.disable_ptr %}</td>
                 </tr>
                 {% endif %}
+                {% if object.expiration_date %}
+                    <tr>
+                        <th scope="row">{% trans "Expiration Date" %}</th>
+                        <td>{{ object.expiration_date|isodate }}</td>
+                    </tr>
+                    {% if expiration_warning %}
+                        <tr class="text-warning">
+                            <th scope="row">{% trans "Warning" %}</th>
+                            <td>{{ expiration_warning }}</td>
+                        </tr>
+                    {% endif %}
+                {% endif %}
                 {% if object.ptr_record %}
                 <tr>
                     <th scope="row">{% trans "PTR Record" %}</th>
@@ -149,52 +161,52 @@
                 </tr>
             </table>
         </div>
-        {% if rrset_record_table %}
-            <div class="card">
-                {% if rrset_record_table.rows|length == 1 %}
-                    <h5 class="card-header">{% trans "Other Record in the RRSET" %}</h5>
-                {% else %}
-                    <h5 class="card-header">{% trans "Other Records in the RRSET" %}</h5>
-                {% endif %}
-                <div class="table-responsive">
-                    {% render_table rrset_record_table 'inc/table.html' %}
-                </div>
+    {% if rrset_record_table %}
+        <div class="card">
+            {% if rrset_record_table.rows|length == 1 %}
+                <h5 class="card-header">{% trans "Other Record in the RRSET" %}</h5>
+            {% else %}
+                <h5 class="card-header">{% trans "Other Records in the RRSET" %}</h5>
+            {% endif %}
+            <div class="table-responsive">
+                {% render_table rrset_record_table 'inc/table.html' %}
             </div>
-        {% endif %}
-        {% if cname_target_table %}
-            <div class="card">
-                {% if cname_target_table.rows|length == 1 %}
-                    <h2 class="card-header">{% trans "CNAME Target" %}</h2>
-                {% else %}
-                    <h2 class="card-header">{% trans "CNAME Targets" %}</h2>
-                {% endif %}
-                <div class="table-responsive">
-                    {% render_table cname_target_table 'inc/table.html' %}
-                </div>
+        </div>
+    {% endif %}
+    {% if cname_target_table %}
+        <div class="card">
+            {% if cname_target_table.rows|length == 1 %}
+                <h2 class="card-header">{% trans "CNAME Target" %}</h2>
+            {% else %}
+                <h2 class="card-header">{% trans "CNAME Targets" %}</h2>
+            {% endif %}
+            <div class="table-responsive">
+                {% render_table cname_target_table 'inc/table.html' %}
             </div>
-        {% elif cname_table %}
-            <div class="card">
-                {% if cname_table.rows|length == 1 %}
-                    <h2 class="card-header">{% trans "CNAME" %}</h2>
-                {% else %}
-                    <h2 class="card-header">{% trans "CNAMEs" %}</h2>
-                {% endif %}
-                <div class="table-responsive">
-                    {% render_table cname_table 'inc/table.html' %}
-                </div>
+        </div>
+    {% elif cname_table %}
+        <div class="card">
+            {% if cname_table.rows|length == 1 %}
+                <h2 class="card-header">{% trans "CNAME" %}</h2>
+            {% else %}
+                <h2 class="card-header">{% trans "CNAMEs" %}</h2>
+            {% endif %}
+            <div class="table-responsive">
+                {% render_table cname_table 'inc/table.html' %}
             </div>
-        {% endif %}
-        {% if not object.managed %}
+        </div>
+    {% endif %}
+    {% if not object.managed %}
         {% include 'inc/panels/custom_fields.html' %}
         {% include 'inc/panels/comments.html' %}
         {% plugin_left_page object %}
-        {% endif %}
+    {% endif %}
     </div>
     {% if not object.managed %}
-    <div class="col col-md-4">
-        {% include 'inc/panels/tags.html' %}
-    </div>
-    {% plugin_right_page object %}
+        <div class="col col-md-4">
+            {% include 'inc/panels/tags.html' %}
+        </div>
+        {% plugin_right_page object %}
     {% endif %}
 </div>
 <div class="row">

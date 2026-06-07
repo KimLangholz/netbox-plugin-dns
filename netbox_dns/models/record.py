@@ -1,4 +1,5 @@
 import ipaddress
+from datetime import date
 
 import dns
 import netaddr
@@ -144,6 +145,7 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         "disable_ptr",
         "description",
         "tenant",
+        "expiration_date",
     )
 
     def __init__(self, *args, **kwargs):
@@ -258,6 +260,11 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         null=True,
         blank=True,
     )
+    expiration_date = models.DateField(
+        verbose_name=_("Expiration Date"),
+        blank=True,
+        null=True,
+    )
 
     @property
     def cleanup_ptr_record(self):
@@ -306,6 +313,13 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
             self.status in RECORD_ACTIVE_STATUS_LIST
             and self.zone.status in ZONE_ACTIVE_STATUS_LIST
         )
+
+    @property
+    def is_expired(self):
+        if self.expiration_date is None:
+            return False
+
+        return self.expiration_date < date.today()
 
     @property
     def is_address_record(self):
