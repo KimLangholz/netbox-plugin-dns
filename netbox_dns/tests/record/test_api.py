@@ -27,6 +27,7 @@ class RecordAPITestCase(
         "active",
         "description",
         "display",
+        "expired",
         "fqdn",
         "id",
         "managed",
