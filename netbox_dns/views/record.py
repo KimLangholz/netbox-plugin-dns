@@ -172,6 +172,9 @@ class RecordView(generic.ObjectView):
 
             context["rrset_record_table"] = rrset_record_table
 
+        if instance.expiration_date is not None and instance.is_expired:
+            context["expiration_warning"] = _("Record is expired")
+
         if not instance.managed:
             try:
                 instance.check_zone_cut_conflict()

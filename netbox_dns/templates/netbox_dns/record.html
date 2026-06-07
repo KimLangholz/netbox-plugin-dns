@@ -118,10 +118,16 @@
                 </tr>
                 {% endif %}
                 {% if object.expiration_date %}
-                <tr>
-                    <th scope="row">{% trans "Expiration Date" %}</th>
-                    <td>{{ object.expiration_date|isodate }}</td>
-                </tr>
+                    <tr>
+                        <th scope="row">{% trans "Expiration Date" %}</th>
+                        <td>{{ object.expiration_date|isodate }}</td>
+                    </tr>
+                    {% if expiration_warning %}
+                        <tr class="text-warning">
+                            <th scope="row">{% trans "Warning" %}</th>
+                            <td>{{ expiration_warning }}</td>
+                        </tr>
+                    {% endif %}
                 {% endif %}
                 {% if object.ptr_record %}
                 <tr>
