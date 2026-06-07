@@ -103,6 +103,7 @@ class RecordAPITestCase(
                 name="example1",
                 value="192.168.1.1",
                 ttl=5000,
+                expiration_date="2026-06-30",
             ),
             Record(
                 zone=cls.zones[4],
@@ -110,6 +111,7 @@ class RecordAPITestCase(
                 name="example2",
                 value="fe80::dead:beef",
                 ttl=6000,
+                expiration_date="2026-05-21",
             ),
             Record(
                 zone=cls.zones[5],
@@ -117,6 +119,7 @@ class RecordAPITestCase(
                 name="example3",
                 value="TXT Record",
                 ttl=7000,
+                expiration_date="2066-01-07",
             ),
             Record(
                 zone=cls.zones[6],
