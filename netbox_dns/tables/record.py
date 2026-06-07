@@ -73,6 +73,7 @@ class RecordTable(RecordBaseTable):
         fields = (
             "status",
             "description",
+            "expiration_date",
         )
 
         default_columns = (

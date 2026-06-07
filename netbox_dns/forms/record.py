@@ -22,7 +22,7 @@ from utilities.forms.fields import (
     TagFilterField,
 )
 from utilities.forms.rendering import FieldSet
-from utilities.forms.widgets import BulkEditNullBooleanSelect
+from utilities.forms.widgets import BulkEditNullBooleanSelect, DatePicker
 
 __all__ = (
     "RecordForm",
@@ -46,6 +46,7 @@ class RecordForm(TenancyForm, PrimaryModelForm):
             "value",
             "status",
             "ttl",
+            "expiration_date",
             "disable_ptr",
             "tenant_group",
             "tenant",
@@ -55,6 +56,10 @@ class RecordForm(TenancyForm, PrimaryModelForm):
         labels = {
             "disable_ptr": _("Disable PTR"),
             "ttl": _("TTL"),
+        }
+
+        widgets = {
+            "expiration_date": DatePicker,
         }
 
     fieldsets = (
@@ -68,6 +73,7 @@ class RecordForm(TenancyForm, PrimaryModelForm):
             "status",
             "ttl",
             "disable_ptr",
+            "expiration_date",
             name=_("Record"),
         ),
         FieldSet(
@@ -141,6 +147,8 @@ class RecordFilterForm(TenancyFilterForm, PrimaryModelFilterSetForm):
             "ttl",
             "disable_ptr",
             "active",
+            "expiration_date_before",
+            "expiration_date_after",
             name=_("Attributes"),
         ),
         FieldSet(
@@ -175,6 +183,16 @@ class RecordFilterForm(TenancyFilterForm, PrimaryModelFilterSetForm):
         required=False,
         widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
         label=_("Disable PTR"),
+    )
+    expiration_date_before = forms.DateField(
+        required=False,
+        label=_("Expiration Date Before"),
+        widget=DatePicker,
+    )
+    expiration_date_after = forms.DateField(
+        required=False,
+        label=_("Expiration Date After"),
+        widget=DatePicker,
     )
     status = forms.MultipleChoiceField(
         choices=RecordStatusChoices,
@@ -221,6 +239,7 @@ class RecordImportForm(PrimaryModelImportForm):
             "value",
             "ttl",
             "disable_ptr",
+            "expiration_date",
             "tenant",
             "tags",
         )
@@ -302,6 +321,7 @@ class RecordBulkEditForm(PrimaryModelBulkEditForm):
             "status",
             "ttl",
             "disable_ptr",
+            "expiration_date",
             name=_("Attributes"),
         ),
         FieldSet(
@@ -315,6 +335,7 @@ class RecordBulkEditForm(PrimaryModelBulkEditForm):
         "description",
         "ttl",
         "tenant",
+        "expiration_date",
     )
 
     zone = DynamicModelChoiceField(
@@ -354,4 +375,9 @@ class RecordBulkEditForm(PrimaryModelBulkEditForm):
         queryset=Tenant.objects.all(),
         required=False,
         label=_("Tenant"),
+    )
+    expiration_date = forms.DateField(
+        required=False,
+        label=_("Expiration Date"),
+        widget=DatePicker,
     )
