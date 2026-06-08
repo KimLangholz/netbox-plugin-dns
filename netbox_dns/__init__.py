@@ -96,6 +96,7 @@ class DNSConfig(PluginConfig):
         ],
         "tolerate_non_rfc1035_types": [],
         "enable_root_zones": False,
+        "enable_record_expiration_job": False,
         "enforce_unique_records": True,
         "enforce_unique_rrset_ttl": True,
         "enforce_zone_cut_checking": True,
@@ -120,8 +121,10 @@ class DNSConfig(PluginConfig):
     def ready(self):
         super().ready()
 
-        import netbox_dns.jobs.record_expiration  # noqa: F401
         import netbox_dns.signals.dnssec  # noqa: F401
+
+        if get_plugin_config("netbox_dns", "enable_record_expiration_job"):
+            import netbox_dns.jobs.record_expiration  # noqa: F401
 
         if not get_plugin_config("netbox_dns", "dnssync_disabled"):
             import netbox_dns.signals.ipam_dnssync  # noqa: F401
