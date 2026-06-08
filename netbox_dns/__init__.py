@@ -120,6 +120,7 @@ class DNSConfig(PluginConfig):
     def ready(self):
         super().ready()
 
+        import netbox_dns.jobs.record_expiration  # noqa: F401
         import netbox_dns.signals.dnssec  # noqa: F401
 
         if not get_plugin_config("netbox_dns", "dnssync_disabled"):
