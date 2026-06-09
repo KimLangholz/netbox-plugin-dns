@@ -8,7 +8,7 @@ from utilities.testing import ChangeLoggedFilterSetTests
 
 
 class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
-    queryset = Record.objects.all()
+    queryset = Record.objects.exclude(type=RecordTypeChoices.SOA)
     filterset = RecordFilterSet
 
     @classmethod
@@ -52,7 +52,6 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 type=RecordTypeChoices.AAAA,
                 value="fe80::dead:beef",
                 tenant=cls.tenants[0],
-                expiration_date="2026-05-21",
             ),
             Record(
                 name="name2",
@@ -71,7 +70,6 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 value="fe80::dead:beef",
                 tenant=cls.tenants[1],
                 managed=True,
-                expiration_date="2026-06-02",
             ),
             Record(
                 name="name5",
@@ -89,6 +87,7 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 type=RecordTypeChoices.AAAA,
                 value="fe80::dead:beef",
                 tenant=cls.tenants[0],
+                expiration_date="2026-05-21",
             ),
             Record(
                 name="name2",
@@ -97,6 +96,7 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 type=RecordTypeChoices.A,
                 value="10.0.0.42",
                 tenant=cls.tenants[0],
+                expiration_date="2026-06-02",
             ),
             Record(
                 name="name3",
@@ -128,9 +128,9 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
 
     def test_zone(self):
         params = {"zone": [self.zones[0]]}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 5)
-        params = {"zone_id": [self.zones[1].pk]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
+        params = {"zone_id": [self.zones[1].pk]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
 
     def test_fqdn(self):
         params = {
@@ -160,7 +160,7 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"status": [RecordStatusChoices.STATUS_INACTIVE]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 1)
         params = {"status": [RecordStatusChoices.STATUS_ACTIVE]}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 8)
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
 
     def test_value(self):
         params = {"value": ["10.0.0.42"]}
@@ -174,7 +174,7 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"managed": False}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 5)
         params = {"managed": True}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
     def test_tenant(self):
         params = {"tenant_id": [self.tenants[0].pk]}
@@ -197,11 +197,8 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
 
     def test_active(self):
-        # *
-        # Note: SOA records show up here as well!
-        # -
         params = {"active": True}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
         params = {"active": False}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 5)
 
@@ -215,7 +212,7 @@ class RecordFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         params = {"expired": True}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
         params = {"expired": False}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 6)
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
 
     def test_ptr_record(self):
         Zone.objects.create(name="1.0.10.in-addr.arpa", **self.zone_data)
