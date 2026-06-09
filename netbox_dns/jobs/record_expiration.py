@@ -8,7 +8,7 @@ from netbox_dns.choices import RecordStatusChoices
 from netbox_dns.models import Record
 
 
-@system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY)
+@system_job(interval=JobIntervalChoices.INTERVAL_DAILY)
 class RecordExpirationJob(JobRunner):
     class Meta:
         name = "Handle expired records"
