@@ -93,8 +93,10 @@ class RecordStatusChoices(ChoiceSet):
 
     STATUS_ACTIVE = "active"
     STATUS_INACTIVE = "inactive"
+    STATUS_EXPIRED = "expired"
 
     CHOICES = [
         (STATUS_ACTIVE, _("Active"), "blue"),
         (STATUS_INACTIVE, _("Inactive"), "red"),
+        (STATUS_EXPIRED, _("Expired"), "grey"),
     ]

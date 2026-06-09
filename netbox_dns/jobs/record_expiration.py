@@ -1,14 +1,14 @@
-from datetime import date, datetime
+from datetime import date
 
-from django.db.models import F
 from django.utils.translation import gettext_lazy as _
 
 from core.choices import JobIntervalChoices
 from netbox.jobs import JobRunner, system_job
+from netbox_dns.choices import RecordStatusChoices
 from netbox_dns.models import Record
 
 
-@system_job(interval=JobIntervalChoices.INTERVAL_DAILY)
+@system_job(interval=JobIntervalChoices.INTERVAL_MINUTELY)
 class RecordExpirationJob(JobRunner):
     class Meta:
         name = "Handle expired records"
@@ -19,26 +19,18 @@ class RecordExpirationJob(JobRunner):
         expired_records = Record.objects.filter(
             expiration_date__isnull=False,
             expiration_date__lte=date.today(),
-            expiration_date__gte=F("last_updated"),
-        )
+        ).exclude(status=RecordStatusChoices.STATUS_EXPIRED)
 
         if not expired_records.exists():
             self.logger.info(_("No expired records found"))
             return
 
-        update_zones = set()
-
         for record in expired_records:
             self.logger.info(
-                _("Updating expired record {record}").format(record=record)
+                _("Setting record {record} status to {status}").format(
+                    record=record, status=RecordStatusChoices.STATUS_EXPIRED
+                )
             )
 
-            update_zones.add(record.zone)
-
-            record.last_updated = datetime.now()
-            super(Record, record).save()
-
-        for zone in update_zones:
-            self.logger.info(_("Updating SOA_SERIAL for zone {zone}").format(zone=zone))
-
-            zone.update_serial()
+            record.status = RecordStatusChoices.STATUS_EXPIRED
+            record.save()

@@ -963,6 +963,9 @@ class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         if not self.is_address_record:
             self.disable_ptr = False
 
+        if self.is_expired:
+            self.status = RecordStatusChoices.STATUS_EXPIRED
+
         if not self.is_active:
             return
 
