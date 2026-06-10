@@ -1195,6 +1195,8 @@ PLUGINS_CONFIG = {
 
 If enabled, the job runs once daily and sets the status of all records whose expiration date has passed to "Expired". This is an inactive record status and causes the record to be disregarded by provisioning mechanisms.
 
+The expiration job does **not** remove expired records, it just sets their status to "Expired". If such a record needs to be reactivated at a later time, the expiration date must be rescheduled to a time in the future or removed entirely and the status of the record set to "Active". The latter will not happen automatically even when the expiration date is changed or removed.
+
 ### Additional Information for IP Addresses and DNS Records
 When a link between an IP address and a DNS address record is present, additional panes will appear in the IPAM IP address and NetBox DNS record view, as well as in the detail views for NetBox DNS managed records.
 
