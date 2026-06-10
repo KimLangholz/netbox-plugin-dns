@@ -265,7 +265,7 @@ msgstr "Durée de vie"
 #: forms/registrar.py:71 forms/registration_contact.py:83 forms/view.py:196
 #: forms/zone.py:435 forms/zone_template.py:137
 msgid "Ownership"
-msgstr ""
+msgstr "Appartenance"
 
 #: forms/dnssec_key_template.py:118
 #: templates/netbox_dns/dnsseckeytemplate.html:66
@@ -1135,16 +1135,16 @@ msgstr "Identifiant de contact de facturation %(value)s non trouvé"
 
 #: jobs/record_expiration.py:17
 msgid "Checking record expiration"
-msgstr ""
+msgstr "Vérifier l'expiration de l'enregistrement"
 
 #: jobs/record_expiration.py:25
 msgid "No expired records found"
-msgstr ""
+msgstr "Aucun enregistrement expiré trouvé"
 
 #: jobs/record_expiration.py:30
 #, python-brace-format
 msgid "Setting record {record} status to {status}"
-msgstr ""
+msgstr "Fixe le statut de l'enregistrement {record} à {status}"
 
 #: models/dnssec_key_template.py:22
 msgid "DNSSEC Key Template"
@@ -1211,7 +1211,7 @@ msgstr "Enregistrement CNAME RCF2317"
 #: models/record.py:408
 #, python-brace-format
 msgid "{fqdn} is masked by child zone {zone}"
-msgstr ""
+msgstr "{fqdn} est masqué par la zone enfant {zone}"
 
 #: models/record.py:692
 #, python-brace-format
@@ -1502,11 +1502,11 @@ msgstr "Avertissement"
 
 #: templates/netbox_dns/record.html:161
 msgid "Other Record in the RRSET"
-msgstr ""
+msgstr "Autre enregistrement dans le RRSET"
 
 #: templates/netbox_dns/record.html:163
 msgid "Other Records in the RRSET"
-msgstr ""
+msgstr "Autres enregistrements dans le RRSET"
 
 #: templates/netbox_dns/record.html:173
 msgid "CNAME Target"
