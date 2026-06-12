@@ -701,6 +701,7 @@ class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
         if not self.soa_serial_auto:
             return
 
+        self.snapshot()
         self.last_updated = datetime.now()
         self.soa_serial = ceil(datetime.now().timestamp())
 
