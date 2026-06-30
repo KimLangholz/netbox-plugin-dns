@@ -1,12 +1,14 @@
 from .schema import (
-    NetBoxDNSViewQuery,
+    NetBoxDNSDNSSECKeyTemplateQuery,
+    NetBoxDNSDNSSECPolicyQuery,
     NetBoxDNSNameServerQuery,
-    NetBoxDNSRegistrationContactQuery,
-    NetBoxDNSRegistrarQuery,
-    NetBoxDNSZoneQuery,
     NetBoxDNSRecordQuery,
-    NetBoxDNSZoneTemplateQuery,
     NetBoxDNSRecordTemplateQuery,
+    NetBoxDNSRegistrarQuery,
+    NetBoxDNSRegistrationContactQuery,
+    NetBoxDNSViewQuery,
+    NetBoxDNSZoneQuery,
+    NetBoxDNSZoneTemplateQuery,
 )
 
 schema = [
@@ -14,6 +16,8 @@ schema = [
     NetBoxDNSViewQuery,
     NetBoxDNSZoneQuery,
     NetBoxDNSRecordQuery,
+    NetBoxDNSDNSSECKeyTemplateQuery,
+    NetBoxDNSDNSSECPolicyQuery,
     NetBoxDNSRegistrationContactQuery,
     NetBoxDNSRegistrarQuery,
     NetBoxDNSZoneTemplateQuery,

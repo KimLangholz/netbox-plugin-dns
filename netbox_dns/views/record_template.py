@@ -1,19 +1,17 @@
 from dns import name as dns_name
 
 from netbox.views import generic
-from utilities.views import register_model_view
-
 from netbox_dns.filtersets import RecordTemplateFilterSet
 from netbox_dns.forms import (
-    RecordTemplateImportForm,
+    RecordTemplateBulkEditForm,
     RecordTemplateFilterForm,
     RecordTemplateForm,
-    RecordTemplateBulkEditForm,
+    RecordTemplateImportForm,
 )
 from netbox_dns.models import RecordTemplate
 from netbox_dns.tables import RecordTemplateTable, ZoneTemplateDisplayTable
 from netbox_dns.utilities import value_to_unicode
-
+from utilities.views import register_model_view
 
 __all__ = (
     "RecordTemplateView",
@@ -50,9 +48,11 @@ class RecordTemplateView(generic.ObjectView):
             context["unicode_value"] = unicode_value
 
         if instance.zone_templates.exists():
-            context["zone_template_table"] = ZoneTemplateDisplayTable(
+            zone_template_table = ZoneTemplateDisplayTable(
                 data=instance.zone_templates.all()
             )
+            zone_template_table.configure(request)
+            context["zone_template_table"] = zone_template_table
 
         return context
 
@@ -62,13 +62,11 @@ class RecordTemplateView(generic.ObjectView):
 class RecordTemplateEditView(generic.ObjectEditView):
     queryset = RecordTemplate.objects.all()
     form = RecordTemplateForm
-    default_return_url = "plugins:netbox_dns:recordtemplate_list"
 
 
 @register_model_view(RecordTemplate, "delete")
 class RecordTemplateDeleteView(generic.ObjectDeleteView):
     queryset = RecordTemplate.objects.all()
-    default_return_url = "plugins:netbox_dns:recordtemplate_list"
 
 
 @register_model_view(RecordTemplate, "bulk_import", detail=False)
@@ -76,7 +74,6 @@ class RecordTemplateBulkImportView(generic.BulkImportView):
     queryset = RecordTemplate.objects.all()
     model_form = RecordTemplateImportForm
     table = RecordTemplateTable
-    default_return_url = "plugins:netbox_dns:recordtemplate_list"
 
 
 @register_model_view(RecordTemplate, "bulk_edit", path="edit", detail=False)

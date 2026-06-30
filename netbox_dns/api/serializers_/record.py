@@ -1,35 +1,87 @@
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
-from netbox.api.serializers import NetBoxModelSerializer
 from ipam.api.serializers import IPAddressSerializer
+from netbox.api.serializers import PrimaryModelSerializer
+from netbox_dns.models import Record
 from tenancy.api.serializers import TenantSerializer
 
-from netbox_dns.models import Record
-
-from ..nested_serializers import NestedZoneSerializer, NestedRecordSerializer
-
+from ..field_serializers import TimePeriodField
+from ..nested_serializers import NestedRecordSerializer, NestedZoneSerializer
 
 __all__ = ("RecordSerializer",)
 
 
-class RecordSerializer(NetBoxModelSerializer):
+class RecordSerializer(PrimaryModelSerializer):
+    class Meta:
+        model = Record
+        fields = (
+            "id",
+            "url",
+            "zone",
+            "display",
+            "display_url",
+            "type",
+            "name",
+            "description",
+            "comments",
+            "tags",
+            "fqdn",
+            "value",
+            "status",
+            "ttl",
+            "created",
+            "last_updated",
+            "managed",
+            "disable_ptr",
+            "ptr_record",
+            "address_records",
+            "active",
+            "custom_fields",
+            "tenant",
+            "ipam_ip_address",
+            "absolute_value",
+            "expiration_date",
+            "expired",
+        )
+
+        brief_fields = (
+            "id",
+            "url",
+            "zone",
+            "display",
+            "type",
+            "name",
+            "fqdn",
+            "value",
+            "status",
+            "ttl",
+            "description",
+            "managed",
+            "active",
+            "expired",
+        )
+
     url = serializers.HyperlinkedIdentityField(
         view_name="plugins-api:netbox_dns-api:record-detail"
+    )
+    ttl = TimePeriodField(
+        required=False,
+        allow_null=True,
     )
     ptr_record = NestedRecordSerializer(
         many=False,
         read_only=True,
         required=False,
         allow_null=True,
-        help_text=_("PTR record generated from an address"),
+        help_text=_("PTR record related to an address"),
     )
-    address_record = NestedRecordSerializer(
-        many=False,
+    address_records = NestedRecordSerializer(
+        many=True,
         read_only=True,
         required=False,
         allow_null=True,
-        help_text=_("Address record defining the PTR"),
+        help_text=_("Address records related to the PTR"),
     )
     zone = NestedZoneSerializer(
         many=False,
@@ -48,47 +100,12 @@ class RecordSerializer(NetBoxModelSerializer):
         allow_null=True,
         help_text=_("IPAddress linked to the record"),
     )
-    tenant = TenantSerializer(nested=True, required=False, allow_null=True)
+    tenant = TenantSerializer(
+        nested=True,
+        required=False,
+        allow_null=True,
+    )
+    expired = serializers.SerializerMethodField()
 
-    class Meta:
-        model = Record
-        fields = (
-            "id",
-            "url",
-            "zone",
-            "display",
-            "type",
-            "name",
-            "fqdn",
-            "value",
-            "status",
-            "ttl",
-            "description",
-            "tags",
-            "created",
-            "last_updated",
-            "managed",
-            "disable_ptr",
-            "ptr_record",
-            "address_record",
-            "active",
-            "custom_fields",
-            "tenant",
-            "ipam_ip_address",
-            "absolute_value",
-        )
-        brief_fields = (
-            "id",
-            "url",
-            "zone",
-            "display",
-            "type",
-            "name",
-            "fqdn",
-            "value",
-            "status",
-            "ttl",
-            "description",
-            "managed",
-            "active",
-        )
+    def get_expired(self, instance):
+        return instance.is_expired

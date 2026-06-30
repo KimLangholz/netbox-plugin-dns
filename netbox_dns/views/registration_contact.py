@@ -2,19 +2,16 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from netbox.views import generic
-
-from utilities.views import ViewTab, register_model_view
-
-from netbox_dns.models import RegistrationContact, Zone
 from netbox_dns.filtersets import RegistrationContactFilterSet, ZoneFilterSet
 from netbox_dns.forms import (
-    RegistrationContactForm,
-    RegistrationContactFilterForm,
-    RegistrationContactImportForm,
     RegistrationContactBulkEditForm,
+    RegistrationContactFilterForm,
+    RegistrationContactForm,
+    RegistrationContactImportForm,
 )
+from netbox_dns.models import RegistrationContact, Zone
 from netbox_dns.tables import RegistrationContactTable, ZoneTable
-
+from utilities.views import ViewTab, register_model_view
 
 __all__ = (
     "RegistrationContactView",
@@ -45,13 +42,11 @@ class RegistrationContactView(generic.ObjectView):
 class RegistrationContactEditView(generic.ObjectEditView):
     queryset = RegistrationContact.objects.all()
     form = RegistrationContactForm
-    default_return_url = "plugins:netbox_dns:registrationcontact_list"
 
 
 @register_model_view(RegistrationContact, "delete")
 class RegistrationContactDeleteView(generic.ObjectDeleteView):
     queryset = RegistrationContact.objects.all()
-    default_return_url = "plugins:netbox_dns:registrationcontact_list"
 
 
 @register_model_view(RegistrationContact, "bulk_import", detail=False)
@@ -59,7 +54,6 @@ class RegistrationContactBulkImportView(generic.BulkImportView):
     queryset = RegistrationContact.objects.all()
     model_form = RegistrationContactImportForm
     table = RegistrationContactTable
-    default_return_url = "plugins:netbox_dns:registrationcontact_list"
 
 
 @register_model_view(RegistrationContact, "bulk_edit", path="edit", detail=False)

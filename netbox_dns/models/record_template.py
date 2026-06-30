@@ -1,20 +1,17 @@
 import dns
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
+from django.db import models
+from django.utils.translation import gettext_lazy as _
 from dns import name as dns_name
 
-from django.core.exceptions import ValidationError
-from django.db import models
-from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
-
-from netbox.models import NetBoxModel
-from netbox.search import SearchIndex, register_search
+from netbox.models import PrimaryModel
 from netbox.plugins.utils import get_plugin_config
-
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices
+from netbox.search import SearchIndex, register_search
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
 from netbox_dns.validators import validate_generic_name, validate_record_value
 
 from .record import Record
-
 
 __all__ = (
     "RecordTemplate",
@@ -22,55 +19,12 @@ __all__ = (
 )
 
 
-class RecordTemplate(NetBoxModel):
-    name = models.CharField(
-        verbose_name=_("Template Name"),
-        unique=True,
-        max_length=200,
-        db_collation="natural_sort",
-    )
-    record_name = models.CharField(
-        verbose_name=_("Name"),
-        max_length=255,
-        db_collation="natural_sort",
-    )
-    description = models.CharField(
-        verbose_name=_("Description"),
-        max_length=200,
-        blank=True,
-    )
-    type = models.CharField(
-        verbose_name=_("Type"),
-        choices=RecordTypeChoices,
-    )
-    value = models.CharField(
-        verbose_name=_("Value"),
-        max_length=65535,
-    )
-    status = models.CharField(
-        verbose_name=_("Status"),
-        choices=RecordStatusChoices,
-        default=RecordStatusChoices.STATUS_ACTIVE,
-        blank=False,
-    )
-    ttl = models.PositiveIntegerField(
-        verbose_name=_("TTL"),
-        null=True,
-        blank=True,
-    )
-    disable_ptr = models.BooleanField(
-        verbose_name=_("Disable PTR"),
-        help_text=_("Disable PTR record creation"),
-        default=False,
-    )
-    tenant = models.ForeignKey(
-        verbose_name=_("Tenant"),
-        to="tenancy.Tenant",
-        on_delete=models.PROTECT,
-        related_name="+",
-        blank=True,
-        null=True,
-    )
+class RecordTemplate(PrimaryModel):
+    class Meta:
+        verbose_name = _("Record Template")
+        verbose_name_plural = _("Record Templates")
+
+        ordering = ("name",)
 
     clone_fields = (
         "record_name",
@@ -92,21 +46,56 @@ class RecordTemplate(NetBoxModel):
         "tenant",
     )
 
-    class Meta:
-        verbose_name = _("Record Template")
-        verbose_name_plural = _("Record Templates")
-
-        ordering = ("name",)
-
     def __str__(self):
         return str(self.name)
 
+    name = models.CharField(
+        verbose_name=_("Template Name"),
+        unique=True,
+        max_length=200,
+        db_collation="natural_sort",
+    )
+    record_name = models.CharField(
+        verbose_name=_("Name"),
+        max_length=255,
+        db_collation="natural_sort",
+    )
+    type = models.CharField(
+        verbose_name=_("Type"),
+        choices=RecordTypeChoices,
+    )
+    value = models.CharField(
+        verbose_name=_("Value"),
+        max_length=65535,
+    )
+    status = models.CharField(
+        verbose_name=_("Status"),
+        choices=RecordStatusChoices,
+        default=RecordStatusChoices.STATUS_ACTIVE,
+        blank=False,
+    )
+    ttl = models.PositiveIntegerField(
+        verbose_name=_("TTL"),
+        null=True,
+        blank=True,
+        validators=[MaxValueValidator(2147483647)],
+    )
+    disable_ptr = models.BooleanField(
+        verbose_name=_("Disable PTR"),
+        help_text=_("Disable PTR record creation"),
+        default=False,
+    )
+    tenant = models.ForeignKey(
+        verbose_name=_("Tenant"),
+        to="tenancy.Tenant",
+        on_delete=models.PROTECT,
+        related_name="+",
+        blank=True,
+        null=True,
+    )
+
     def get_status_color(self):
         return RecordStatusChoices.colors.get(self.status)
-
-    # TODO: Remove in version 1.3.0 (NetBox #18555)
-    def get_absolute_url(self):
-        return reverse("plugins:netbox_dns:recordtemplate", kwargs={"pk": self.pk})
 
     def validate_name(self):
         try:
@@ -174,12 +163,16 @@ class RecordTemplate(NetBoxModel):
         if tags := self.tags.all():
             record.tags.set(tags)
 
+    create_record.alters_data = True
+
     def clean_fields(self, exclude=None):
         self.type = self.type.upper()
         if get_plugin_config("netbox_dns", "convert_names_to_lowercase", False):
             self.record_name = self.record_name.lower()
 
         super().clean_fields(exclude=exclude)
+
+    clean_fields.alters_data = True
 
     def clean(self, *args, **kwargs):
         self.validate_name()
@@ -191,9 +184,11 @@ class RecordTemplate(NetBoxModel):
 @register_search
 class RecordTemplateIndex(SearchIndex):
     model = RecordTemplate
+
     fields = (
         ("name", 100),
         ("record_name", 120),
         ("value", 150),
         ("type", 200),
+        ("description", 500),
     )

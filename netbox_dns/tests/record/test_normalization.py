@@ -1,8 +1,8 @@
-from django.test import TestCase
 from django.core.exceptions import ValidationError
+from django.test import TestCase
 
-from netbox_dns.models import Zone, Record, NameServer
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import NameServer, Record, Zone
 
 
 class RecordNormalizationTestCase(TestCase):

@@ -1,16 +1,14 @@
 from netbox.views import generic
-from utilities.views import register_model_view
-
-from netbox_dns.models import ZoneTemplate
 from netbox_dns.filtersets import ZoneTemplateFilterSet
 from netbox_dns.forms import (
-    ZoneTemplateImportForm,
-    ZoneTemplateForm,
-    ZoneTemplateFilterForm,
     ZoneTemplateBulkEditForm,
+    ZoneTemplateFilterForm,
+    ZoneTemplateForm,
+    ZoneTemplateImportForm,
 )
-from netbox_dns.tables import ZoneTemplateTable, RecordTemplateDisplayTable
-
+from netbox_dns.models import ZoneTemplate
+from netbox_dns.tables import RecordTemplateDisplayTable, ZoneTemplateTable
+from utilities.views import register_model_view
 
 __all__ = (
     "ZoneTemplateView",
@@ -37,10 +35,12 @@ class ZoneTemplateView(generic.ObjectView):
 
     def get_extra_context(self, request, instance):
         if instance.record_templates.exists():
+            record_template_table = RecordTemplateDisplayTable(
+                data=instance.record_templates.all()
+            )
+            record_template_table.configure(request)
             return {
-                "record_template_table": RecordTemplateDisplayTable(
-                    data=instance.record_templates.all()
-                )
+                "record_template_table": record_template_table,
             }
 
         return {}
@@ -51,13 +51,11 @@ class ZoneTemplateView(generic.ObjectView):
 class ZoneTemplateEditView(generic.ObjectEditView):
     queryset = ZoneTemplate.objects.all()
     form = ZoneTemplateForm
-    default_return_url = "plugins:netbox_dns:zonetemplate_list"
 
 
 @register_model_view(ZoneTemplate, "delete")
 class ZoneTemplateDeleteView(generic.ObjectDeleteView):
     queryset = ZoneTemplate.objects.all()
-    default_return_url = "plugins:netbox_dns:zonetemplate_list"
 
 
 @register_model_view(ZoneTemplate, "bulk_import", detail=False)
@@ -65,7 +63,6 @@ class ZoneTemplateBulkImportView(generic.BulkImportView):
     queryset = ZoneTemplate.objects.all()
     model_form = ZoneTemplateImportForm
     table = ZoneTemplateTable
-    default_return_url = "plugins:netbox_dns:zonetemplate_list"
 
 
 @register_model_view(ZoneTemplate, "bulk_edit", path="edit", detail=False)
@@ -74,7 +71,6 @@ class ZoneTemplateBulkEditView(generic.BulkEditView):
     filterset = ZoneTemplateFilterSet
     table = ZoneTemplateTable
     form = ZoneTemplateBulkEditForm
-    default_return_url = "plugins:netbox_dns:zonetemplate_list"
 
 
 @register_model_view(ZoneTemplate, "bulk_delete", path="delete", detail=False)

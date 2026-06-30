@@ -1,5 +1,5 @@
-from django.urls import reverse
 from django.test import SimpleTestCase
+from django.urls import reverse
 
 from netbox_dns import __version__
 from utilities.testing.api import APITestCase
@@ -7,7 +7,7 @@ from utilities.testing.api import APITestCase
 
 class NetBoxDNSVersionTestCase(SimpleTestCase):
     def test_version(self):
-        assert __version__ == "1.2.6"
+        assert __version__ == "1.5.10"
 
 
 class AppTest(APITestCase):

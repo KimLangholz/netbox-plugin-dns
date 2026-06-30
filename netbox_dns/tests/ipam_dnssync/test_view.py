@@ -1,13 +1,11 @@
-from netaddr import IPNetwork
-
-from django.test import TestCase
 from django.core import management
 from django.core.exceptions import ValidationError
+from django.test import TestCase
+from netaddr import IPNetwork
 
 from ipam.models import IPAddress, Prefix
-
-from netbox_dns.models import View, Zone, NameServer, Record
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import NameServer, Record, View, Zone
 
 
 class DNSsyncViewTestCase(TestCase):

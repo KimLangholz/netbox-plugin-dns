@@ -1,4 +1,5 @@
 {% extends 'netbox_dns/zone/base.html' %}
+{% load plugins %}
 {% load helpers %}
 {% load i18n %}
 {% load netbox_dns %}
@@ -96,8 +97,32 @@
             </table>
         </div>
 
+        {% if object.dnssec_policy %}
+            <div class="card">
+                <h5 class="card-header">{% trans "DNSSEC" %}</h5>
+                <table class="table table-hover attr-table">
+                    <tr>
+                        <th scope="row">{% trans "Policy" %}</th>
+                        <td>{{ object.dnssec_policy|linkify }}</td>
+                    </tr>
+                    <tr>
+                        <th scope="row">{% trans "Parental Agents" %}</th>
+                        <td>
+                            <table>
+                                {% for parental_agent in object.parental_agents %}
+                                <tr><td>{{ parental_agent }}</td></tr>
+                                {% endfor %}
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        {% endif %}
+
         {% include 'inc/panels/tags.html' %}
         {% include 'inc/panels/custom_fields.html' %}
+        {% include 'inc/panels/comments.html' %}
+        {% plugin_left_page object %}
     </div>
     <div class="col col-md-6">
         <div class="card">
@@ -111,6 +136,13 @@
                     <th scope="row">{% trans "MName" %}</th>
                     <td>{{ object.soa_mname|linkify }}</td>
                 </tr>
+                {% if mname_warning %}
+                <tr>
+                    <th class="text-warning" scope="row">{% trans "Warning" %}</th>
+                    <td class="text-warning">{{ mname_warning }}</td>
+                </tr>
+                {% endif %}
+
                 <tr>
                     <th scope="row">{% trans "RName" %}</th>
                     <td>{{ object.soa_rname }}</td>
@@ -173,6 +205,12 @@
             </div>
         </div>
         {% endif %}
+        {% plugin_right_page object %}
+    </div>
+</div>
+<div class="row">
+    <div class="col col-md-12">
+        {% plugin_full_width_page object %}
     </div>
 </div>
 {% endblock %}

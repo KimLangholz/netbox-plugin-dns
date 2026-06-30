@@ -1,16 +1,17 @@
 from django.db.models import Q
 
-from netbox.filtersets import NetBoxModelFilterSet
-
+from netbox.filtersets import PrimaryModelFilterSet
 from netbox_dns.models import Registrar
-
+from utilities.filtersets import register_filterset
 
 __all__ = ("RegistrarFilterSet",)
 
 
-class RegistrarFilterSet(NetBoxModelFilterSet):
+@register_filterset
+class RegistrarFilterSet(PrimaryModelFilterSet):
     class Meta:
         model = Registrar
+
         fields = (
             "id",
             "name",
@@ -28,6 +29,7 @@ class RegistrarFilterSet(NetBoxModelFilterSet):
             return queryset
         qs_filter = (
             Q(name__icontains=value)
+            | Q(description__icontains=value)
             | Q(iana_id=value)
             | Q(referral_url__icontains=value)
             | Q(whois_server__icontains=value)

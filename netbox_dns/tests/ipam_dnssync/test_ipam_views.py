@@ -1,23 +1,23 @@
-from netaddr import IPNetwork
-
+from django.core import management
 from django.test import override_settings
 from django.urls import reverse
-from django.core import management
+from netaddr import IPNetwork
 from rest_framework import status
 
-from ipam.models import IPAddress, Prefix, VRF
+from core.models import ObjectType
+from extras.choices import CustomFieldTypeChoices
+from extras.models import CustomField
 from ipam.choices import IPAddressStatusChoices
-
-from utilities.testing import post_data
-
-from netbox_dns.tests.custom import ModelViewTestCase
+from ipam.models import VRF, IPAddress, Prefix
+from netbox_dns.choices import RecordTypeChoices
 from netbox_dns.models import (
+    NameServer,
+    Record,
     View,
     Zone,
-    Record,
-    NameServer,
 )
-from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.tests.custom import ModelViewTestCase
+from utilities.testing import post_data
 
 
 class DNSsyncIPAMViewTestCase(ModelViewTestCase):
@@ -485,6 +485,56 @@ class DNSsyncIPAMViewTestCase(ModelViewTestCase):
         request_data = {
             "address": address,
             "dns_name": name,
+            **self.default_ipaddress_data,
+        }
+        request = {
+            "data": post_data(request_data),
+        }
+
+        response = self.client.get(path=url)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+
+        response = self.client.post(path=url, **request)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertRegex(
+            response.content.decode(), "There is already an active CNAME record"
+        )
+
+        self.assertFalse(IPAddress.objects.filter(dns_name=name).exists())
+        self.assertFalse(Record.objects.filter(type=RecordTypeChoices.AAAA).exists())
+
+    def test_create_ipaddress_invalid_record_filter(self):
+        view = self.views[0]
+        zone = self.zones[0]
+        prefix = self.prefixes[0]
+
+        cf = CustomField.objects.create(
+            name="ipaddress_dns",
+            type=CustomFieldTypeChoices.TYPE_BOOLEAN,
+            default=False,
+            required=False,
+        )
+        cf.object_types.set([ObjectType.objects.get_for_model(IPAddress)])
+
+        address = "2001:db8::1/64"
+        name = "name1.zone1.example.com"
+
+        view.prefixes.add(prefix)
+        view.ip_address_filter = {"custom_field_data__ipaddress_dns": True}
+        view.save()
+
+        Record.objects.create(
+            name="name1", zone=zone, type=RecordTypeChoices.CNAME, value="@"
+        )
+
+        self.add_permissions("ipam.add_ipaddress")
+
+        url = reverse("ipam:ipaddress_add")
+
+        request_data = {
+            "address": address,
+            "dns_name": name,
+            "cf_ipaddress_dns": True,
             **self.default_ipaddress_data,
         }
         request = {
@@ -1083,6 +1133,62 @@ class DNSsyncIPAMViewTestCase(ModelViewTestCase):
         self.assertEqual(record.value, address.split("/")[0])
         self.assertEqual(record.zone, zone)
 
+    def test_update_ipaddress_cf_invalid_record_filter(self):
+        view = self.views[0]
+        zone = self.zones[0]
+        prefix = self.prefixes[0]
+
+        cf = CustomField.objects.create(
+            name="ipaddress_dns",
+            type=CustomFieldTypeChoices.TYPE_BOOLEAN,
+            default=False,
+            required=False,
+        )
+        cf.object_types.set([ObjectType.objects.get_for_model(IPAddress)])
+
+        address = "2001:db8::1/64"
+        name = "name1.zone1.example.com"
+
+        view.prefixes.add(prefix)
+        view.ip_address_filter = {"custom_field_data__ipaddress_dns": True}
+        view.save()
+
+        ip_address = IPAddress.objects.create(
+            address=IPNetwork(address),
+            dns_name=name,
+            custom_field_data={"ipaddress_dns": False},
+        )
+        self.assertFalse(Record.objects.filter(ipam_ip_address=ip_address).exists())
+
+        Record.objects.create(
+            name="name1", zone=zone, type=RecordTypeChoices.CNAME, value="@"
+        )
+
+        self.add_permissions("ipam.change_ipaddress")
+
+        url = reverse("ipam:ipaddress_edit", kwargs={"pk": ip_address.pk})
+
+        request_data = {
+            "address": address,
+            "dns_name": name,
+            "cf_ipaddress_dns": True,
+            **self.default_ipaddress_data,
+        }
+        request = {
+            "data": post_data(request_data),
+        }
+
+        response = self.client.get(path=url)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+
+        response = self.client.post(path=url, **request)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertRegex(
+            response.content.decode(), "There is already an active CNAME record"
+        )
+
+        self.assertFalse(Record.objects.filter(ipam_ip_address=ip_address).exists())
+
     def test_update_prefix_assign_view(self):
         view = self.views[0]
         prefix = self.prefixes[0]
@@ -1281,3 +1387,36 @@ class DNSsyncIPAMViewTestCase(ModelViewTestCase):
 
         self.assertNotIn(view, prefix.netbox_dns_views.all())
         self.assertNotIn(prefix, view.prefixes.all())
+
+    def test_delete_ipaddress(self):
+        view = self.views[0]
+        zone = self.zones[0]
+        prefix = self.prefixes[0]
+
+        address = "2001:db8::1/64"
+        name = "name1.zone1.example.com"
+
+        view.prefixes.add(prefix)
+
+        ip_address = IPAddress.objects.create(address=IPNetwork(address), dns_name=name)
+        record = Record.objects.get(ipam_ip_address=ip_address)
+        self.assertEqual(record.type, RecordTypeChoices.AAAA)
+        self.assertEqual(record.fqdn, f"{name}.")
+        self.assertEqual(record.value, address.split("/")[0])
+        self.assertEqual(record.zone, zone)
+
+        self.add_permissions("ipam.delete_ipaddress")
+
+        url = reverse("ipam:ipaddress_delete", kwargs={"pk": ip_address.pk})
+
+        request = {
+            "data": {"confirm": True},
+        }
+
+        response = self.client.get(path=url)
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+
+        response = self.client.post(path=url, **request)
+        self.assertHttpStatus(response, status.HTTP_302_FOUND)
+
+        self.assertFalse(Record.objects.filter(pk=record.pk).exists())

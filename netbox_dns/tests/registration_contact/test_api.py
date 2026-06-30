@@ -1,7 +1,10 @@
-from utilities.testing import APIViewTestCases
-
-from netbox_dns.tests.custom import APITestCase, NetBoxDNSGraphQLMixin
 from netbox_dns.models import RegistrationContact
+from netbox_dns.tests.custom import (
+    APITestCase,
+    CustomFieldTargetAPIMixin,
+    NetBoxDNSGraphQLMixin,
+)
+from utilities.testing import APIViewTestCases
 
 
 class RegistrationContactAPITestCase(
@@ -12,6 +15,7 @@ class RegistrationContactAPITestCase(
     APIViewTestCases.UpdateObjectViewTestCase,
     APIViewTestCases.DeleteObjectViewTestCase,
     NetBoxDNSGraphQLMixin,
+    CustomFieldTargetAPIMixin,
     APIViewTestCases.GraphQLTestCase,
 ):
     model = RegistrationContact

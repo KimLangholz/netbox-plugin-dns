@@ -1,5 +1,5 @@
-from django.test import TestCase, override_settings
 from django.core.exceptions import ValidationError
+from django.test import TestCase, override_settings
 
 from netbox_dns.models import NameServer
 

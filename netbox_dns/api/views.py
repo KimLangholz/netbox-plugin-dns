@@ -2,41 +2,45 @@ from django.utils.translation import gettext as _
 from rest_framework import serializers
 from rest_framework.routers import APIRootView
 
-from ipam.models import Prefix
 from ipam.filtersets import PrefixFilterSet
-
+from ipam.models import Prefix
 from netbox.api.viewsets import NetBoxModelViewSet
-
 from netbox_dns.api.serializers import (
-    ViewSerializer,
-    ZoneSerializer,
+    DNSSECKeyTemplateSerializer,
+    DNSSECPolicySerializer,
     NameServerSerializer,
+    PrefixSerializer,
     RecordSerializer,
+    RecordTemplateSerializer,
     RegistrarSerializer,
     RegistrationContactSerializer,
+    ViewSerializer,
+    ZoneSerializer,
     ZoneTemplateSerializer,
-    RecordTemplateSerializer,
-    PrefixSerializer,
 )
 from netbox_dns.filtersets import (
-    ViewFilterSet,
-    ZoneFilterSet,
+    DNSSECKeyTemplateFilterSet,
+    DNSSECPolicyFilterSet,
     NameServerFilterSet,
     RecordFilterSet,
+    RecordTemplateFilterSet,
     RegistrarFilterSet,
     RegistrationContactFilterSet,
+    ViewFilterSet,
+    ZoneFilterSet,
     ZoneTemplateFilterSet,
-    RecordTemplateFilterSet,
 )
 from netbox_dns.models import (
-    View,
-    Zone,
+    DNSSECKeyTemplate,
+    DNSSECPolicy,
     NameServer,
     Record,
+    RecordTemplate,
     Registrar,
     RegistrationContact,
+    View,
+    Zone,
     ZoneTemplate,
-    RecordTemplate,
 )
 
 
@@ -52,26 +56,19 @@ class ViewViewSet(NetBoxModelViewSet):
 
 
 class ZoneViewSet(NetBoxModelViewSet):
-    queryset = Zone.objects.prefetch_related(
-        "view",
-        "nameservers",
-        "tags",
-        "soa_mname",
-        "records",
-        "tenant",
-    )
+    queryset = Zone.objects.prefetch_related("view", "nameservers", "soa_mname")
     serializer_class = ZoneSerializer
     filterset_class = ZoneFilterSet
 
 
 class NameServerViewSet(NetBoxModelViewSet):
-    queryset = NameServer.objects.prefetch_related("zones", "tenant")
+    queryset = NameServer.objects.prefetch_related("zones")
     serializer_class = NameServerSerializer
     filterset_class = NameServerFilterSet
 
 
 class RecordViewSet(NetBoxModelViewSet):
-    queryset = Record.objects.prefetch_related("zone", "zone__view", "tenant")
+    queryset = Record.objects.prefetch_related("zone", "zone__view")
     serializer_class = RecordSerializer
     filterset_class = RecordFilterSet
 
@@ -133,6 +130,18 @@ class RecordTemplateViewSet(NetBoxModelViewSet):
     queryset = RecordTemplate.objects.all()
     serializer_class = RecordTemplateSerializer
     filterset_class = RecordTemplateFilterSet
+
+
+class DNSSECKeyTemplateViewSet(NetBoxModelViewSet):
+    queryset = DNSSECKeyTemplate.objects.all()
+    serializer_class = DNSSECKeyTemplateSerializer
+    filterset_class = DNSSECKeyTemplateFilterSet
+
+
+class DNSSECPolicyViewSet(NetBoxModelViewSet):
+    queryset = DNSSECPolicy.objects.all()
+    serializer_class = DNSSECPolicySerializer
+    filterset_class = DNSSECPolicyFilterSet
 
 
 class PrefixViewSet(NetBoxModelViewSet):

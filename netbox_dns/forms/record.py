@@ -2,29 +2,27 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from netbox.forms import (
-    NetBoxModelBulkEditForm,
-    NetBoxModelFilterSetForm,
-    NetBoxModelImportForm,
-    NetBoxModelForm,
+    PrimaryModelBulkEditForm,
+    PrimaryModelFilterSetForm,
+    PrimaryModelForm,
+    PrimaryModelImportForm,
 )
+from netbox_dns.choices import RecordSelectableTypeChoices, RecordStatusChoices
+from netbox_dns.fields import TimePeriodField
+from netbox_dns.models import Record, View, Zone
+from netbox_dns.utilities import name_to_unicode
+from tenancy.forms import TenancyFilterForm, TenancyForm
+from tenancy.models import Tenant, TenantGroup
+from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES, add_blank_choice
 from utilities.forms.fields import (
-    DynamicModelMultipleChoiceField,
-    TagFilterField,
     CSVChoiceField,
     CSVModelChoiceField,
     DynamicModelChoiceField,
+    DynamicModelMultipleChoiceField,
+    TagFilterField,
 )
-from utilities.forms.widgets import BulkEditNullBooleanSelect
-from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES, add_blank_choice
 from utilities.forms.rendering import FieldSet
-from tenancy.models import Tenant, TenantGroup
-from tenancy.forms import TenancyForm, TenancyFilterForm
-
-from netbox_dns.models import View, Zone, Record
-from netbox_dns.choices import RecordSelectableTypeChoices, RecordStatusChoices
-from netbox_dns.utilities import name_to_unicode
-from netbox_dns.fields import TimePeriodField
-
+from utilities.forms.widgets import BulkEditNullBooleanSelect, DatePicker
 
 __all__ = (
     "RecordForm",
@@ -34,7 +32,61 @@ __all__ = (
 )
 
 
-class RecordForm(TenancyForm, NetBoxModelForm):
+class RecordForm(TenancyForm, PrimaryModelForm):
+    class Meta:
+        model = Record
+
+        fields = (
+            "name",
+            "description",
+            "owner",
+            "comments",
+            "zone",
+            "type",
+            "value",
+            "status",
+            "ttl",
+            "expiration_date",
+            "disable_ptr",
+            "tenant_group",
+            "tenant",
+            "tags",
+        )
+
+        labels = {
+            "disable_ptr": _("Disable PTR"),
+            "ttl": _("TTL"),
+        }
+
+        widgets = {
+            "expiration_date": DatePicker,
+        }
+
+    fieldsets = (
+        FieldSet(
+            "name",
+            "description",
+            "view",
+            "zone",
+            "type",
+            "value",
+            "status",
+            "ttl",
+            "disable_ptr",
+            "expiration_date",
+            name=_("Record"),
+        ),
+        FieldSet(
+            "tenant_group",
+            "tenant",
+            name=_("Tenancy"),
+        ),
+        FieldSet(
+            "tags",
+            name=_("Tags"),
+        ),
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -63,57 +115,29 @@ class RecordForm(TenancyForm, NetBoxModelForm):
         required=True,
         label=_("Type"),
     )
-
-    disable_ptr = forms.BooleanField(
-        required=False,
-        label=_("Disable PTR"),
-    )
     ttl = TimePeriodField(
         required=False,
         label=_("TTL"),
     )
 
-    fieldsets = (
-        FieldSet(
-            "name",
-            "view",
-            "zone",
-            "type",
-            "value",
-            "status",
-            "ttl",
-            "disable_ptr",
-            "description",
-            name="Record",
-        ),
-        FieldSet("tenant_group", "tenant", name=_("Tenancy")),
-        FieldSet("tags", name=_("Tags")),
-    )
 
-    class Meta:
-        model = Record
-
-        fields = (
-            "name",
-            "zone",
-            "type",
-            "value",
-            "status",
-            "ttl",
-            "disable_ptr",
-            "description",
-            "tenant_group",
-            "tenant",
-            "tags",
-        )
-
-
-class RecordFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
+class RecordFilterForm(TenancyFilterForm, PrimaryModelFilterSetForm):
     model = Record
+
     fieldsets = (
-        FieldSet("q", "filter_id", "tag"),
+        FieldSet(
+            "q",
+            "filter_id",
+            "tag",
+        ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
+        ),
         FieldSet(
             "name",
+            "description",
             "view_id",
             "zone_id",
             "fqdn",
@@ -122,25 +146,34 @@ class RecordFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
             "status",
             "ttl",
             "disable_ptr",
-            "description",
             "active",
+            "expiration_date_before",
+            "expiration_date_after",
             name=_("Attributes"),
         ),
-        FieldSet("tenant_group_id", "tenant_id", name=_("Tenancy")),
+        FieldSet(
+            "tenant_group_id",
+            "tenant_id",
+            name=_("Tenancy"),
+        ),
     )
 
-    type = forms.MultipleChoiceField(
-        choices=RecordSelectableTypeChoices,
-        required=False,
-        label=_("Type"),
-    )
     name = forms.CharField(
         required=False,
         label=_("Name"),
     )
+    description = forms.CharField(
+        required=False,
+        label=_("Description"),
+    )
     fqdn = forms.CharField(
         required=False,
         label=_("FQDN"),
+    )
+    type = forms.MultipleChoiceField(
+        choices=RecordSelectableTypeChoices,
+        required=False,
+        label=_("Type"),
     )
     value = forms.CharField(
         required=False,
@@ -150,6 +183,16 @@ class RecordFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
         required=False,
         widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
         label=_("Disable PTR"),
+    )
+    expiration_date_before = forms.DateField(
+        required=False,
+        label=_("Expiration Date Before"),
+        widget=DatePicker,
+    )
+    expiration_date_after = forms.DateField(
+        required=False,
+        label=_("Expiration Date After"),
+        widget=DatePicker,
     )
     status = forms.MultipleChoiceField(
         choices=RecordStatusChoices,
@@ -178,14 +221,34 @@ class RecordFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
         widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
         label=_("Active"),
     )
-    description = forms.CharField(
-        required=False,
-        label=_("Description"),
-    )
-    tag = TagFilterField(Record)
+    tag = TagFilterField(model)
 
 
-class RecordImportForm(NetBoxModelImportForm):
+class RecordImportForm(PrimaryModelImportForm):
+    class Meta:
+        model = Record
+
+        fields = (
+            "name",
+            "description",
+            "owner",
+            "comments",
+            "zone",
+            "view",
+            "type",
+            "value",
+            "ttl",
+            "disable_ptr",
+            "expiration_date",
+            "tenant",
+            "tags",
+        )
+
+        labels = {
+            "disable_ptr": _("Disable PTR"),
+            "ttl": _("TTL"),
+        }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -230,14 +293,6 @@ class RecordImportForm(NetBoxModelImportForm):
         required=False,
         label=_("Status"),
     )
-    ttl = TimePeriodField(
-        required=False,
-        label=_("TTL"),
-    )
-    disable_ptr = forms.BooleanField(
-        required=False,
-        label=_("Disable PTR"),
-    )
     tenant = CSVModelChoiceField(
         queryset=Tenant.objects.all(),
         to_field_name="name",
@@ -253,25 +308,35 @@ class RecordImportForm(NetBoxModelImportForm):
 
         return is_valid
 
-    class Meta:
-        model = Record
 
-        fields = (
+class RecordBulkEditForm(PrimaryModelBulkEditForm):
+    model = Record
+
+    fieldsets = (
+        FieldSet(
+            "description",
             "zone",
-            "view",
             "type",
-            "name",
             "value",
+            "status",
             "ttl",
             "disable_ptr",
-            "description",
+            "expiration_date",
+            name=_("Attributes"),
+        ),
+        FieldSet(
+            "tenant_group",
             "tenant",
-            "tags",
-        )
+            name=_("Tenancy"),
+        ),
+    )
 
-
-class RecordBulkEditForm(NetBoxModelBulkEditForm):
-    model = Record
+    nullable_fields = (
+        "description",
+        "ttl",
+        "tenant",
+        "expiration_date",
+    )
 
     zone = DynamicModelChoiceField(
         queryset=Zone.objects.all(),
@@ -301,11 +366,6 @@ class RecordBulkEditForm(NetBoxModelBulkEditForm):
         widget=BulkEditNullBooleanSelect(),
         label=_("Disable PTR"),
     )
-    description = forms.CharField(
-        max_length=200,
-        required=False,
-        label=_("Description"),
-    )
     tenant_group = DynamicModelChoiceField(
         queryset=TenantGroup.objects.all(),
         required=False,
@@ -316,18 +376,8 @@ class RecordBulkEditForm(NetBoxModelBulkEditForm):
         required=False,
         label=_("Tenant"),
     )
-
-    fieldsets = (
-        FieldSet(
-            "zone",
-            "type",
-            "value",
-            "status",
-            "ttl",
-            "disable_ptr",
-            "description",
-            name=_("Attributes"),
-        ),
-        FieldSet("tenant_group", "tenant", name=_("Tenancy")),
+    expiration_date = forms.DateField(
+        required=False,
+        label=_("Expiration Date"),
+        widget=DatePicker,
     )
-    nullable_fields = ("description", "ttl", "tenant")

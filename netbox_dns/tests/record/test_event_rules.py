@@ -1,20 +1,18 @@
 import uuid
 
 import django_rq
-from django.urls import reverse
 from django.test import RequestFactory
+from django.urls import reverse
 from rest_framework import status
 
+from core.events import OBJECT_CREATED, OBJECT_DELETED, OBJECT_UPDATED
 from core.models import ObjectType
-from extras.models import EventRule, Tag, Webhook
 from extras.choices import EventRuleActionChoices
-
+from extras.models import EventRule, Tag, Webhook
 from netbox.context_managers import event_tracking
-from core.events import OBJECT_CREATED, OBJECT_UPDATED, OBJECT_DELETED
-from utilities.testing import APITestCase
-
-from netbox_dns.models import NameServer, Zone, Record
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import NameServer, Record, Zone
+from utilities.testing import APITestCase
 
 
 class RecordEventRuleTest(APITestCase):

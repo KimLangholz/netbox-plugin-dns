@@ -1,12 +1,12 @@
-from netaddr import IPNetwork, AddrFormatError
-
 from django import forms
-from django.db import models
 from django.core.exceptions import ValidationError
+from django.db import models
 from django.utils.translation import gettext_lazy as _
+from netaddr import AddrFormatError, IPNetwork
 
 from netbox_dns.validators import validate_ipv4, validate_prefix, validate_rfc2317
-from .network import NetContains, NetContained, NetOverlap, NetMaskLength
+
+from .network import NetContained, NetContains, NetMaskLength, NetOverlap
 
 INVALID_RFC2317 = _(
     "RFC2317 requires an IPv4 prefix with a length of at least 25 bits."

@@ -1,14 +1,18 @@
-from utilities.testing import APIViewTestCases, create_tags
-
-from netbox_dns.tests.custom import APITestCase, NetBoxDNSGraphQLMixin
-from netbox_dns.models import (
-    ZoneTemplate,
-    RecordTemplate,
-    NameServer,
-    RegistrationContact,
-    Registrar,
-)
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import (
+    DNSSECPolicy,
+    NameServer,
+    RecordTemplate,
+    Registrar,
+    RegistrationContact,
+    ZoneTemplate,
+)
+from netbox_dns.tests.custom import (
+    APITestCase,
+    CustomFieldTargetAPIMixin,
+    NetBoxDNSGraphQLMixin,
+)
+from utilities.testing import APIViewTestCases, create_tags
 
 
 class ZoneTemplateAPITestCase(
@@ -19,6 +23,7 @@ class ZoneTemplateAPITestCase(
     APIViewTestCases.UpdateObjectViewTestCase,
     APIViewTestCases.DeleteObjectViewTestCase,
     NetBoxDNSGraphQLMixin,
+    CustomFieldTargetAPIMixin,
     APIViewTestCases.GraphQLTestCase,
 ):
     model = ZoneTemplate
@@ -40,6 +45,13 @@ class ZoneTemplateAPITestCase(
             NameServer(name="ns4.example.com"),
         )
         NameServer.objects.bulk_create(nameservers)
+
+        dnssec_policies = (
+            DNSSECPolicy(name="Test Policy 1"),
+            DNSSECPolicy(name="Test Policy 2"),
+            DNSSECPolicy(name="Test Policy 3"),
+        )
+        DNSSECPolicy.objects.bulk_create(dnssec_policies)
 
         registrars = (
             Registrar(name="Registrar 1"),
@@ -81,25 +93,41 @@ class ZoneTemplateAPITestCase(
 
         zone_templates = (
             ZoneTemplate(
-                name="Zone Template 1", registrar=registrars[0], registrant=contacts[0]
+                name="Zone Template 1",
+                registrar=registrars[0],
+                registrant=contacts[0],
+                dnssec_policy=dnssec_policies[0],
             ),
             ZoneTemplate(
-                name="Zone Template 2", registrar=registrars[1], tech_c=contacts[1]
+                name="Zone Template 2",
+                registrar=registrars[1],
+                tech_c=contacts[1],
+                dnssec_policy=dnssec_policies[0],
             ),
             ZoneTemplate(
-                name="Zone Template 3", registrar=registrars[0], admin_c=contacts[2]
+                name="Zone Template 3",
+                registrar=registrars[0],
+                admin_c=contacts[2],
+                parental_agents=["2001:db8:23::23", "2001:db8:42::42"],
             ),
             ZoneTemplate(
-                name="Zone Template 4", registrar=registrars[1], billing_c=contacts[3]
+                name="Zone Template 4",
+                registrar=registrars[1],
+                billing_c=contacts[3],
+                parental_agents=["2001:db8:23::23", "2001:db8:42::42"],
             ),
             ZoneTemplate(
                 name="Zone Template 5",
+                dnssec_policy=dnssec_policies[1],
+                parental_agents=["2001:db8:23::23", "2001:db8:42::23"],
                 registrar=registrars[0],
                 registrant=contacts[4],
                 billing_c=contacts[5],
             ),
             ZoneTemplate(
                 name="Zone Template 6",
+                dnssec_policy=dnssec_policies[1],
+                parental_agents=["2001:db8:42::42", "2001:db8:42::23"],
                 registrar=registrars[0],
                 registrant=contacts[3],
                 tech_c=contacts[1],
@@ -116,6 +144,8 @@ class ZoneTemplateAPITestCase(
                 "record_templates": [
                     record_template.pk for record_template in record_templates[0:3]
                 ],
+                "dnssec_policy": dnssec_policies[2].pk,
+                "parental_agents": ["2001:db8:23::42", "2001:db8:42::23"],
                 "registrar": registrars[0].pk,
                 "registrant": contacts[0].pk,
                 "tech_c": contacts[0].pk,
@@ -128,6 +158,8 @@ class ZoneTemplateAPITestCase(
                 "soa_mname": nameservers[0].pk,
                 "soa_rname": "hostmaster.example.com",
                 "record_templates": [record_templates[1].pk],
+                "dnssec_policy": dnssec_policies[1].pk,
+                "parental_agents": ["2001:db8:23::23", "2001:db8:42::42"],
                 "registrar": registrars[0].pk,
                 "registrant": contacts[0].pk,
                 "tech_c": contacts[1].pk,
@@ -162,6 +194,8 @@ class ZoneTemplateAPITestCase(
             "soa_mname": nameservers[0].pk,
             "soa_rname": "hostmaster3.example.com",
             "record_templates": [record_templates[1].pk, record_templates[2].pk],
+            "dnssec_policy": dnssec_policies[2].pk,
+            "parental_agents": ["2001:db8:23::23"],
             "registrar": registrars[0].pk,
             "tech_c": contacts[0].pk,
             "admin_c": contacts[0].pk,

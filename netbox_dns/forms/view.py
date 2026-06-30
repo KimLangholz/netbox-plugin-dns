@@ -1,39 +1,37 @@
 from django import forms
 from django.conf import settings
-from django.core.exceptions import ValidationError, FieldError
-from django.db.models import Q, Count
+from django.core.exceptions import FieldError, ValidationError
+from django.db.models import Count, Q
 from django.utils.translation import gettext_lazy as _
 
+from ipam.models import IPAddress, Prefix
+from netbox.context import current_request
 from netbox.forms import (
-    NetBoxModelBulkEditForm,
-    NetBoxModelFilterSetForm,
-    NetBoxModelImportForm,
-    NetBoxModelForm,
+    PrimaryModelBulkEditForm,
+    PrimaryModelFilterSetForm,
+    PrimaryModelForm,
+    PrimaryModelImportForm,
 )
+from netbox_dns.fields import PrefixDynamicModelMultipleChoiceField
+from netbox_dns.models import View
+from netbox_dns.utilities import (
+    check_dns_records,
+    get_ip_addresses_by_prefix,
+    get_query_from_filter,
+    get_views_by_prefix,
+)
+from tenancy.forms import TenancyFilterForm, TenancyForm
+from tenancy.models import Tenant, TenantGroup
+from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES
 from utilities.forms.fields import (
-    TagFilterField,
     CSVModelChoiceField,
     CSVModelMultipleChoiceField,
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
+    JSONField,
+    TagFilterField,
 )
-from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES
 from utilities.forms.rendering import FieldSet
-from utilities.forms.fields import JSONField
-from tenancy.models import Tenant, TenantGroup
-from tenancy.forms import TenancyForm, TenancyFilterForm
-from ipam.models import Prefix, IPAddress
-from netbox.context import current_request
-
-from netbox_dns.models import View
-from netbox_dns.fields import PrefixDynamicModelMultipleChoiceField
-from netbox_dns.utilities import (
-    check_dns_records,
-    get_ip_addresses_by_prefix,
-    get_views_by_prefix,
-    get_query_from_filter,
-)
-
 
 __all__ = (
     "ViewForm",
@@ -94,7 +92,45 @@ class ViewPrefixUpdateMixin:
                         self.add_error("prefixes", exc.messages)
 
 
-class ViewForm(ViewPrefixUpdateMixin, TenancyForm, NetBoxModelForm):
+class ViewForm(ViewPrefixUpdateMixin, TenancyForm, PrimaryModelForm):
+    class Meta:
+        model = View
+
+        fields = (
+            "name",
+            "description",
+            "owner",
+            "comments",
+            "default_view",
+            "prefixes",
+            "ip_address_filter",
+            "tenant_group",
+            "tenant",
+            "tags",
+        )
+
+    fieldsets = (
+        FieldSet(
+            "name",
+            "description",
+            "default_view",
+            name=_("View"),
+        ),
+        FieldSet(
+            "prefixes",
+            "ip_address_filter",
+        ),
+        FieldSet(
+            "tenant_group",
+            "tenant",
+            name=_("Tenancy"),
+        ),
+        FieldSet(
+            "tags",
+            name=_("Tags"),
+        ),
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -125,26 +161,6 @@ class ViewForm(ViewPrefixUpdateMixin, TenancyForm, NetBoxModelForm):
         label=_("IP Address Filter"),
     )
 
-    fieldsets = (
-        FieldSet("name", "default_view", "description", name=_("View")),
-        FieldSet("prefixes", "ip_address_filter"),
-        FieldSet("tenant_group", "tenant", name=_("Tenancy")),
-        FieldSet("tags", name=_("Tags")),
-    )
-
-    class Meta:
-        model = View
-        fields = (
-            "name",
-            "default_view",
-            "description",
-            "prefixes",
-            "ip_address_filter",
-            "tenant_group",
-            "tenant",
-            "tags",
-        )
-
     def clean_prefixes(self):
         if hasattr(self, "_saved_prefixes"):
             return self._saved_prefixes
@@ -165,30 +181,54 @@ class ViewForm(ViewPrefixUpdateMixin, TenancyForm, NetBoxModelForm):
         return ip_address_filter
 
 
-class ViewFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
+class ViewFilterForm(TenancyFilterForm, PrimaryModelFilterSetForm):
+    model = View
+
+    fieldsets = (
+        FieldSet(
+            "q",
+            "filter_id",
+            "tag",
+        ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
+        ),
+        FieldSet(
+            "name",
+            "description",
+            "default_view",
+            name=_("Attributes"),
+        ),
+        FieldSet(
+            "prefix_id",
+        ),
+        FieldSet(
+            "tenant_group_id",
+            "tenant_id",
+            name=_("Tenancy"),
+        ),
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         if settings.PLUGINS_CONFIG["netbox_dns"].get("dnssync_disabled"):
             del self.fields["prefix_id"]
 
-    model = View
-    fieldsets = (
-        FieldSet("q", "filter_id", "tag"),
-        FieldSet("name", "default_view", "description", name=_("Attributes")),
-        FieldSet("prefix_id"),
-        FieldSet("tenant_group_id", "tenant_id", name=_("Tenancy")),
-    )
-
     name = forms.CharField(
         required=False,
+        label=_("Name"),
+    )
+    description = forms.CharField(
+        required=False,
+        label=_("Description"),
     )
     default_view = forms.NullBooleanField(
         required=False,
         widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
-    )
-    description = forms.CharField(
-        required=False,
+        label=_("Default View"),
     )
     prefix_id = PrefixDynamicModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
@@ -198,10 +238,23 @@ class ViewFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
         },
         label=_("Prefix"),
     )
-    tag = TagFilterField(View)
+    tag = TagFilterField(model)
 
 
-class ViewImportForm(ViewPrefixUpdateMixin, NetBoxModelImportForm):
+class ViewImportForm(ViewPrefixUpdateMixin, PrimaryModelImportForm):
+    class Meta:
+        model = View
+
+        fields = (
+            "name",
+            "description",
+            "owner",
+            "comments",
+            "prefixes",
+            "tenant",
+            "tags",
+        )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -210,7 +263,6 @@ class ViewImportForm(ViewPrefixUpdateMixin, NetBoxModelImportForm):
 
     prefixes = CSVModelMultipleChoiceField(
         queryset=Prefix.objects.all(),
-        to_field_name="id",
         required=False,
         help_text=_("Prefix IDs assigned to the view"),
         label=_("Prefixes"),
@@ -222,19 +274,27 @@ class ViewImportForm(ViewPrefixUpdateMixin, NetBoxModelImportForm):
         label=_("Tenant"),
     )
 
-    class Meta:
-        model = View
-        fields = ("name", "description", "prefixes", "tenant", "tags")
 
-
-class ViewBulkEditForm(NetBoxModelBulkEditForm):
+class ViewBulkEditForm(PrimaryModelBulkEditForm):
     model = View
 
-    description = forms.CharField(
-        max_length=200,
-        required=False,
-        label=_("Description"),
+    fieldsets = (
+        FieldSet(
+            "description",
+            name=_("Attributes"),
+        ),
+        FieldSet(
+            "tenant_group",
+            "tenant",
+            name=_("Tenancy"),
+        ),
     )
+
+    nullable_fields = (
+        "description",
+        "tenant",
+    )
+
     tenant_group = DynamicModelChoiceField(
         queryset=TenantGroup.objects.all(),
         required=False,
@@ -246,29 +306,11 @@ class ViewBulkEditForm(NetBoxModelBulkEditForm):
         label=_("Tenant"),
     )
 
-    fieldsets = (
-        FieldSet(
-            "description",
-            name=_("Attributes"),
-        ),
-        FieldSet("tenant_group", "tenant", name=_("Tenancy")),
-    )
-
-    nullable_fields = ("description", "tenant")
-
 
 class ViewPrefixEditForm(forms.ModelForm):
-    views = DynamicModelMultipleChoiceField(
-        queryset=View.objects.all(),
-        required=False,
-        help_text=_(
-            "Explicitly assigning DNS views overrides all inherited views for this prefix"
-        ),
-        label=_("Assigned DNS Views"),
-    )
-
     class Meta:
         model = Prefix
+
         fields = ("views",)
 
     def __init__(self, *args, **kwargs):
@@ -285,6 +327,15 @@ class ViewPrefixEditForm(forms.ModelForm):
                 self.fields["views"].widget.attrs["placeholder"] = _(
                     "You do not have permission to modify assigned views"
                 )
+
+    views = DynamicModelMultipleChoiceField(
+        queryset=View.objects.all(),
+        required=False,
+        help_text=_(
+            "Explicitly assigning DNS views overrides all inherited views for this prefix"
+        ),
+        label=_("Assigned DNS Views"),
+    )
 
     def clean(self, *args, **kwargs):
         if self._permission_denied:

@@ -1,148 +1,166 @@
-import netaddr
-
 import django_filters
+import netaddr
 from django.db.models import Q
-from django.utils.translation import gettext as _
+from netaddr.core import AddrFormatError
 
-from netbox.filtersets import NetBoxModelFilterSet
+from netbox.filtersets import PrimaryModelFilterSet
+from netbox_dns.choices import ZoneEPPStatusChoices, ZoneStatusChoices
+from netbox_dns.filters import TimePeriodFilter
+from netbox_dns.models import (
+    DNSSECPolicy,
+    NameServer,
+    Registrar,
+    RegistrationContact,
+    View,
+    Zone,
+)
 from tenancy.filtersets import TenancyFilterSet
 from utilities.filters import MultiValueCharFilter
-
-from netbox_dns.models import View, Zone, Registrar, RegistrationContact, NameServer
-from netbox_dns.choices import ZoneStatusChoices
-
+from utilities.filtersets import register_filterset
 
 __all__ = ("ZoneFilterSet",)
 
 
-class ZoneFilterSet(TenancyFilterSet, NetBoxModelFilterSet):
+@register_filterset
+class ZoneFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
+    class Meta:
+        model = Zone
+
+        fields = (
+            "id",
+            "name",
+            "description",
+            "soa_rname",
+            "soa_serial",
+            "soa_serial_auto",
+            "rfc2317_parent_managed",
+            "domain_status",
+            "inline_signing",
+            "registry_domain_id",
+            "expiration_date",
+        )
+
     status = django_filters.MultipleChoiceFilter(
         choices=ZoneStatusChoices,
     )
     view_id = django_filters.ModelMultipleChoiceFilter(
         queryset=View.objects.all(),
-        label=_("View ID"),
     )
     view = django_filters.ModelMultipleChoiceFilter(
         queryset=View.objects.all(),
         field_name="view__name",
         to_field_name="name",
-        label=_("View"),
     )
     nameserver_id = django_filters.ModelMultipleChoiceFilter(
         queryset=NameServer.objects.all(),
         field_name="nameservers",
-        to_field_name="id",
-        label=_("Nameservers ID"),
     )
     nameserver = django_filters.ModelMultipleChoiceFilter(
         queryset=NameServer.objects.all(),
         field_name="nameservers__name",
         to_field_name="name",
-        label=_("Nameserver"),
     )
+    default_ttl = TimePeriodFilter()
     soa_mname_id = django_filters.ModelMultipleChoiceFilter(
         queryset=NameServer.objects.all(),
-        label=_("SOA MName ID"),
     )
     soa_mname = django_filters.ModelMultipleChoiceFilter(
         queryset=NameServer.objects.all(),
         field_name="soa_mname__name",
         to_field_name="name",
-        label=_("SOA MName"),
     )
-    arpa_network = MultiValueCharFilter(
-        method="filter_arpa_network",
-        label=_("ARPA Network"),
+    soa_ttl = TimePeriodFilter()
+    soa_refresh = TimePeriodFilter()
+    soa_retry = TimePeriodFilter()
+    soa_expire = TimePeriodFilter()
+    soa_minimum = TimePeriodFilter()
+    dnssec_policy_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=DNSSECPolicy.objects.all(),
+    )
+    dnssec_policy = django_filters.ModelMultipleChoiceFilter(
+        queryset=DNSSECPolicy.objects.all(),
+        field_name="dnssec_policy__name",
+        to_field_name="name",
+    )
+    parental_agents = MultiValueCharFilter(
+        method="filter_parental_agents",
     )
     rfc2317_prefix = MultiValueCharFilter(
         method="filter_rfc2317_prefix",
-        label=_("RFC2317 Prefix"),
     )
     rfc2317_parent_zone_id = django_filters.ModelMultipleChoiceFilter(
         queryset=Zone.objects.all(),
         field_name="rfc2317_parent_zone",
-        to_field_name="id",
-        label=_("RFC2317 Parent Zone"),
     )
     rfc2317_parent_zone = django_filters.ModelMultipleChoiceFilter(
         queryset=Zone.objects.all(),
         field_name="rfc2317_parent_zone__name",
         to_field_name="name",
-        label=_("RFC2317 Parent Zone"),
     )
     registrar_id = django_filters.ModelMultipleChoiceFilter(
         queryset=Registrar.objects.all(),
-        label="Registrar ID",
     )
     registrar = django_filters.ModelMultipleChoiceFilter(
         queryset=Registrar.objects.all(),
         field_name="registrar__name",
         to_field_name="name",
-        label=_("Registrar"),
+    )
+    expiration_date = django_filters.DateFromToRangeFilter()
+    domain_status = django_filters.MultipleChoiceFilter(
+        choices=ZoneEPPStatusChoices,
     )
     registrant_id = django_filters.ModelMultipleChoiceFilter(
         queryset=RegistrationContact.objects.all(),
-        label=_("Registrant ID"),
     )
     registrant = django_filters.ModelMultipleChoiceFilter(
         queryset=RegistrationContact.objects.all(),
         field_name="registrant__contact_id",
         to_field_name="contact_id",
-        label=_("Registrant"),
     )
     admin_c_id = django_filters.ModelMultipleChoiceFilter(
         queryset=RegistrationContact.objects.all(),
-        label=_("Administrative Contact ID"),
     )
     admin_c = django_filters.ModelMultipleChoiceFilter(
         queryset=RegistrationContact.objects.all(),
         field_name="admin_c__contact_id",
         to_field_name="contact_id",
-        label=_("Administrative Contact"),
     )
     tech_c_id = django_filters.ModelMultipleChoiceFilter(
         queryset=RegistrationContact.objects.all(),
-        label=_("Technical Contact ID"),
     )
     tech_c = django_filters.ModelMultipleChoiceFilter(
         queryset=RegistrationContact.objects.all(),
         field_name="tech_c__contact_id",
         to_field_name="contact_id",
-        label=_("Technical Contact"),
     )
     billing_c_id = django_filters.ModelMultipleChoiceFilter(
         queryset=RegistrationContact.objects.all(),
-        label=_("Billing Contact ID"),
     )
     billing_c = django_filters.ModelMultipleChoiceFilter(
         queryset=RegistrationContact.objects.all(),
         field_name="billing_c__contact_id",
         to_field_name="contact_id",
-        label=_("Billing Contact"),
     )
-    active = django_filters.BooleanFilter(
-        label=_("Zone is active"),
+    arpa_network = MultiValueCharFilter(
+        method="filter_arpa_network",
+    )
+    active = django_filters.BooleanFilter()
+    inline_signing = django_filters.BooleanFilter(
+        method="filter_inline_signing",
     )
 
-    class Meta:
-        model = Zone
-        fields = (
-            "id",
-            "name",
-            "description",
-            "default_ttl",
-            "soa_ttl",
-            "soa_rname",
-            "soa_serial",
-            "soa_refresh",
-            "soa_retry",
-            "soa_expire",
-            "soa_minimum",
-            "soa_serial_auto",
-            "rfc2317_parent_managed",
-            "registry_domain_id",
-        )
+    def filter_parental_agents(self, queryset, name, value):
+        if not value:
+            return queryset
+
+        query_values = []
+        for v in value:
+            try:
+                query_values.append(str(netaddr.IPAddress(v)))
+            except (AddrFormatError, ValueError):
+                pass
+
+        return queryset.filter(parental_agents__overlap=query_values)
 
     def filter_arpa_network(self, queryset, name, value):
         if not value:
@@ -172,18 +190,34 @@ class ZoneFilterSet(TenancyFilterSet, NetBoxModelFilterSet):
         except (netaddr.AddrFormatError, ValueError):
             return queryset.none()
 
+    def filter_inline_signing(self, queryset, name, value):
+        if value is None:
+            return queryset
+
+        if value:
+            return queryset.filter(
+                dnssec_policy__isnull=False, dnssec_policy__inline_signing=True
+            )
+
+        return queryset.filter(
+            Q(Q(dnssec_policy__isnull=True) | Q(dnssec_policy__inline_signing=False))
+        )
+
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
         qs_filter = (
             Q(name__icontains=value)
+            | Q(description__icontains=value)
             | Q(status__icontains=value)
             | Q(view__name__icontains=value)
+            | Q(dnssec_policy__name__icontains=value)
             | Q(registrar__name__icontains=value)
             | Q(registry_domain_id__icontains=value)
             | Q(registrant__name__icontains=value)
             | Q(admin_c__name__icontains=value)
             | Q(tech_c__name__icontains=value)
             | Q(billing_c__name__icontains=value)
+            | Q(comments__icontains=value)
         )
         return queryset.filter(qs_filter)

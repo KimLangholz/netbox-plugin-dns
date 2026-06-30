@@ -1,11 +1,10 @@
-from django.db import models
 from django.core.exceptions import ValidationError
+from django.db import models
+from django.db.models import Lookup
 from django.utils.translation import gettext_lazy as _
-
 from netaddr import AddrFormatError, IPAddress
 
 from ipam.formfields import IPAddressFormField
-
 
 __all__ = ("AddressField",)
 
@@ -50,3 +49,19 @@ class AddressField(models.Field):
 
     def db_type(self, connection):
         return "inet"
+
+
+class AddressContained(Lookup):
+    lookup_name = "contained"
+
+    def get_prep_lookup(self):
+        return str(self.rhs)
+
+    def as_sql(self, compiler, connection):
+        lhs, lhs_params = self.process_lhs(compiler, connection)
+        rhs, rhs_params = self.process_rhs(compiler, connection)
+        params = lhs_params + rhs_params
+        return f"CAST(HOST({lhs}) AS INET) <<= {rhs}", params
+
+
+AddressField.register_lookup(AddressContained)

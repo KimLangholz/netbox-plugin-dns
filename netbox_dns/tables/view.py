@@ -1,11 +1,9 @@
 import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
-from netbox.tables import NetBoxTable, TagColumn, ActionsColumn
-from tenancy.tables import TenancyColumnsMixin
-
+from netbox.tables import ActionsColumn, BooleanColumn, PrimaryModelTable, TagColumn
 from netbox_dns.models import View
-
+from tenancy.tables import TenancyColumnsMixin
 
 __all__ = (
     "ViewTable",
@@ -13,31 +11,34 @@ __all__ = (
 )
 
 
-class ViewTable(TenancyColumnsMixin, NetBoxTable):
+class ViewTable(TenancyColumnsMixin, PrimaryModelTable):
+    class Meta(PrimaryModelTable.Meta):
+        model = View
+
+        fields = (
+            "description",
+            "ip_address_filter",
+        )
+
+        default_columns = (
+            "name",
+            "default_view",
+        )
+
     name = tables.Column(
         verbose_name=_("Name"),
         linkify=True,
     )
-    default_view = tables.BooleanColumn(
+    default_view = BooleanColumn(
         verbose_name=_("Default View"),
     )
     tags = TagColumn(url_name="plugins:netbox_dns:view_list")
 
-    class Meta(NetBoxTable.Meta):
+
+class RelatedViewTable(TenancyColumnsMixin, PrimaryModelTable):
+    class Meta(PrimaryModelTable.Meta):
         model = View
-        fields = ("description", "ip_address_filter")
-        default_columns = ("name", "default_view")
 
-
-class RelatedViewTable(TenancyColumnsMixin, NetBoxTable):
-    actions = ActionsColumn(actions=())
-
-    name = tables.Column(
-        linkify=True,
-    )
-
-    class Meta(NetBoxTable.Meta):
-        model = View
         fields = (
             "name",
             "description",
@@ -45,4 +46,14 @@ class RelatedViewTable(TenancyColumnsMixin, NetBoxTable):
             "tenant_group",
             "tags",
         )
-        default_columns = ("name", "description")
+
+        default_columns = (
+            "name",
+            "description",
+        )
+
+    name = tables.Column(
+        linkify=True,
+    )
+    tags = TagColumn(url_name="plugins:netbox_dns:view_list")
+    actions = ActionsColumn(actions=())

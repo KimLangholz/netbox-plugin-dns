@@ -1,26 +1,22 @@
+from django.utils.translation import gettext_lazy as _
 from dns import name as dns_name
 
-from django.utils.translation import gettext_lazy as _
-
 from netbox.views import generic
-from utilities.views import ViewTab, register_model_view
-from tenancy.views import ObjectContactsView
-
-from netbox_dns.filtersets import ZoneFilterSet, RecordFilterSet
+from netbox_dns.filtersets import RecordFilterSet, ZoneFilterSet
 from netbox_dns.forms import (
-    ZoneImportForm,
-    ZoneForm,
-    ZoneFilterForm,
     ZoneBulkEditForm,
+    ZoneFilterForm,
+    ZoneForm,
+    ZoneImportForm,
 )
 from netbox_dns.models import Record, Zone
 from netbox_dns.tables import (
-    ZoneTable,
-    RecordTable,
-    ManagedRecordTable,
     DelegationRecordTable,
+    ManagedRecordTable,
+    RecordTable,
+    ZoneTable,
 )
-
+from utilities.views import ViewTab, register_model_view
 
 __all__ = (
     "ZoneView",
@@ -72,13 +68,11 @@ class ZoneView(generic.ObjectView):
 class ZoneEditView(generic.ObjectEditView):
     queryset = Zone.objects.prefetch_related("view", "tags", "nameservers", "soa_mname")
     form = ZoneForm
-    default_return_url = "plugins:netbox_dns:zone_list"
 
 
 @register_model_view(Zone, "delete")
 class ZoneDeleteView(generic.ObjectDeleteView):
     queryset = Zone.objects.all()
-    default_return_url = "plugins:netbox_dns:zone_list"
 
 
 @register_model_view(Zone, "bulk_import", detail=False)
@@ -86,7 +80,6 @@ class ZoneBulkImportView(generic.BulkImportView):
     queryset = Zone.objects.prefetch_related("view", "tags", "nameservers", "soa_mname")
     model_form = ZoneImportForm
     table = ZoneTable
-    default_return_url = "plugins:netbox_dns:zone_list"
 
 
 @register_model_view(Zone, "bulk_edit", path="edit", detail=False)
@@ -95,7 +88,6 @@ class ZoneBulkEditView(generic.BulkEditView):
     filterset = ZoneFilterSet
     table = ZoneTable
     form = ZoneBulkEditForm
-    default_return_url = "plugins:netbox_dns:zone_list"
 
 
 @register_model_view(Zone, "bulk_delete", path="delete", detail=False)
@@ -119,8 +111,16 @@ class ZoneRegistrationView(generic.ObjectView):
     template_name = "netbox_dns/zone/registration.html"
 
     tab = RegistrationViewTab(
-        label="Registration",
+        label=_("Registration"),
     )
+
+    def get_extra_context(self, request, instance):
+        expiration_warning, expiration_error = instance.check_expiration()
+
+        return {
+            "expiration_warning": expiration_warning,
+            "expiration_error": expiration_error,
+        }
 
 
 @register_model_view(Zone, "records")
@@ -150,7 +150,6 @@ class ZoneManagedRecordListView(generic.ObjectChildrenView):
     table = ManagedRecordTable
     filterset = RecordFilterSet
     template_name = "netbox_dns/zone/managed_record.html"
-    actions = {"changelog": {"view"}}
 
     tab = ViewTab(
         label=_("Managed Records"),
@@ -237,8 +236,3 @@ class ZoneChildZoneListView(generic.ObjectChildrenView):
 
     def get_children(self, request, parent):
         return parent.child_zones
-
-
-@register_model_view(Zone, "contacts")
-class ZoneContactsView(ObjectContactsView):
-    queryset = Zone.objects.all()

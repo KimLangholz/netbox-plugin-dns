@@ -1,33 +1,74 @@
 [project]
 name = "netbox-plugin-dns"
-version = "1.2.6"
+version = "1.5.10"
 description = "NetBox DNS is a NetBox plugin for managing DNS data."
 authors = [
-    {name="Peter Eckel", email="pete@netbox-dns.org"},
+    {name="Peter Eckel", email="pe@sys4.de"},
 ]
-license = {file="LICENCE"}
+license-files = [
+    "LICENSE"
+]
 readme = "README.md"
 keywords = ["netbox", "netbox-plugin", "dns"]
 classifiers = [
-    "Development Status :: 5 - Production/Stable"
+    "Development Status :: 5 - Production/Stable",
+    "Framework :: Django",
+    "Natural Language :: English",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     "dnspython",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 
 [project.urls]
-Homepage = "https://github.com/peteeckel/netbox-plugin-dns"
-Documentation = "https://github.com/peteeckel/netbox-plugin-dns/blob/main/docs/using_netbox_dns.md"
-Repository = "https://github.com/peteeckel/netbox-plugin-dns"
-Issues = "https://github.com/peteeckel/netbox-plugin-dns/issues"
+Homepage = "https://github.com/sys4/netbox-plugin-dns"
+Documentation = "https://github.com/sys4/netbox-plugin-dns/blob/main/docs/using_netbox_dns.md"
+Repository = "https://github.com/sys4/netbox-plugin-dns"
+Issues = "https://github.com/sys4/netbox-plugin-dns/issues"
 
 [build-system]
 requires = ['setuptools']
 build-backend = 'setuptools.build_meta'
 
-[tool.setuptools.packages.find]
-exclude = ["examples*", "media*", "*.tests*"]
+[tool.setuptools]
+packages = [
+    "netbox_dns",
+]
+package-data = { "netbox_dns" = ["**/*", "templates/**"] }
+exclude-package-data = { "netbox_dns" = ["tests/*"] }
 
-[tool.setuptools.package-data]
-"netbox_dns" = ["templates/**/*.html", "locale/**/*.mo"]
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "W", "C", "RET", "UP", "I"]
+ignore = ["F403", "C901"]
+preview = true
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "account",
+    "circuits",
+    "core",
+    "dcim",
+    "extras",
+    "ipam",
+    "netbox",
+    "tenancy",
+    "users",
+    "utilities",
+    "virtualization",
+    "vpn",
+    "wireless",
+    "netbox_dns",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

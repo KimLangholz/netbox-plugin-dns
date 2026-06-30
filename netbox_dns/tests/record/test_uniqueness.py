@@ -1,8 +1,8 @@
-from django.test import TestCase, override_settings
 from django.core.exceptions import ValidationError
+from django.test import TestCase, override_settings
 
-from netbox_dns.models import Zone, Record, NameServer
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
+from netbox_dns.models import NameServer, Record, Zone
 
 
 class RecordUniquenessTestCase(TestCase):
@@ -146,6 +146,27 @@ class RecordUniquenessTestCase(TestCase):
             )
 
         self.assertEqual(record1.ttl, 86400)
+
+    def test_rrset_ttl_create_record_without_ttl_set_ttl(self):
+        zone = self.zones[0]
+
+        record1 = Record.objects.create(
+            name="test1",
+            zone=zone,
+            type=RecordTypeChoices.A,
+            value="10.0.1.1",
+            ttl=86400,
+        )
+        record2 = Record.objects.create(
+            name="test1",
+            zone=zone,
+            type=RecordTypeChoices.A,
+            value="10.0.1.2",
+            ttl=None,
+        )
+
+        self.assertEqual(record1.ttl, 86400)
+        self.assertEqual(record2.ttl, 86400)
 
     def test_rrset_ttl_create_record_inactive_ok(self):
         zone = self.zones[0]

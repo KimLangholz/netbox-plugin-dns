@@ -1,19 +1,19 @@
 from django.urls import reverse
 from rest_framework import status
 
-from utilities.testing import APITestCase, create_tags
-from tenancy.models import Tenant
-
+from netbox_dns.choices import RecordTypeChoices
 from netbox_dns.models import (
+    DNSSECPolicy,
     NameServer,
+    Record,
+    RecordTemplate,
     Registrar,
     RegistrationContact,
-    RecordTemplate,
-    ZoneTemplate,
     Zone,
-    Record,
+    ZoneTemplate,
 )
-from netbox_dns.choices import RecordTypeChoices
+from tenancy.models import Tenant
+from utilities.testing import APITestCase, create_tags
 
 
 class ZoneTemplatingAPITestCase(APITestCase):
@@ -52,6 +52,13 @@ class ZoneTemplatingAPITestCase(APITestCase):
         )
         RegistrationContact.objects.bulk_create(cls.contacts)
 
+        cls.dnssec_policies = (
+            DNSSECPolicy(name="Test Policy 1"),
+            DNSSECPolicy(name="Test Policy 2"),
+            DNSSECPolicy(name="Test Policy 3"),
+        )
+        DNSSECPolicy.objects.bulk_create(cls.dnssec_policies)
+
         cls.record_templates = (
             RecordTemplate(
                 name="Primary MX",
@@ -84,6 +91,8 @@ class ZoneTemplatingAPITestCase(APITestCase):
             tech_c=cls.contacts[2],
             billing_c=cls.contacts[3],
             tenant=cls.tenants[0],
+            dnssec_policy=cls.dnssec_policies[0],
+            parental_agents=["2001:db8:42::42", "2001:db8:23::23"],
         )
         cls.zone_template.tags.set(cls.tags[0:3])
         cls.zone_template.nameservers.set(cls.nameservers[0:3])
@@ -118,6 +127,8 @@ class ZoneTemplatingAPITestCase(APITestCase):
         self.assertEqual(zone.tech_c, self.contacts[2])
         self.assertEqual(zone.billing_c, self.contacts[3])
         self.assertEqual(zone.tenant, self.tenants[0])
+        self.assertEqual(zone.dnssec_policy, self.dnssec_policies[0])
+        self.assertEqual(zone.parental_agents, ["2001:db8:42::42", "2001:db8:23::23"])
 
         self.assertEqual(set(zone.nameservers.all()), set(self.nameservers[0:3]))
         self.assertEqual(set(zone.tags.all()), set(self.tags[0:3]))
@@ -187,6 +198,10 @@ class ZoneTemplatingAPITestCase(APITestCase):
                     "name": "ns6.example.com",
                 },
             ],
+            "dnssec_policy": {
+                "name": self.dnssec_policies[1].name,
+            },
+            "parental_agents": ["2001:db8:42::23", "2001:db8:23::42"],
             **Zone.get_defaults(),
         }
 
@@ -205,6 +220,8 @@ class ZoneTemplatingAPITestCase(APITestCase):
         self.assertEqual(zone.tech_c, self.contacts[4])
         self.assertEqual(zone.billing_c, self.contacts[4])
         self.assertEqual(zone.tenant, self.tenants[1])
+        self.assertEqual(zone.dnssec_policy, self.dnssec_policies[1])
+        self.assertEqual(zone.parental_agents, ["2001:db8:42::23", "2001:db8:23::42"])
 
         self.assertEqual(set(zone.nameservers.all()), set(self.nameservers[3:6]))
         self.assertEqual(set(zone.tags.all()), set(self.tags[3:6]))

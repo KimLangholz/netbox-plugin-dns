@@ -1,12 +1,9 @@
 from django.db import models
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-
-from netbox.models import NetBoxModel
-from netbox.search import SearchIndex, register_search
-
 from taggit.managers import TaggableManager
 
+from netbox.models import PrimaryModel
+from netbox.search import SearchIndex, register_search
 
 __all__ = (
     "RegistrationContact",
@@ -14,7 +11,39 @@ __all__ = (
 )
 
 
-class RegistrationContact(NetBoxModel):
+class RegistrationContact(PrimaryModel):
+    class Meta:
+        verbose_name = _("Registration Contact")
+        verbose_name_plural = _("Registration Contacts")
+
+        ordering = (
+            "name",
+            "contact_id",
+        )
+
+    clone_fields = (
+        "name",
+        "description",
+        "organization",
+        "street",
+        "city",
+        "state_province",
+        "postal_code",
+        "country",
+        "phone",
+        "phone_ext",
+        "fax",
+        "fax_ext",
+        "email",
+        "tags",
+    )
+
+    def __str__(self):
+        if self.name is not None:
+            return f"{self.contact_id} ({self.name})"
+
+        return self.contact_id
+
     # +
     # Data fields according to https://www.icann.org/resources/pages/rdds-labeling-policy-2017-02-01-en
     # -
@@ -30,11 +59,6 @@ class RegistrationContact(NetBoxModel):
         max_length=100,
         db_collation="natural_sort",
     )
-    description = models.CharField(
-        verbose_name=_("Description"),
-        blank=True,
-        max_length=200,
-    )
     organization = models.CharField(
         verbose_name=_("Organization"),
         blank=True,
@@ -43,7 +67,7 @@ class RegistrationContact(NetBoxModel):
     street = models.CharField(
         verbose_name=_("Street"),
         blank=True,
-        max_length=50,
+        max_length=255,
     )
     city = models.CharField(
         verbose_name=_("City"),
@@ -101,42 +125,6 @@ class RegistrationContact(NetBoxModel):
         related_name="netbox_dns_contact_set",
     )
 
-    clone_fields = (
-        "name",
-        "description",
-        "organization",
-        "street",
-        "city",
-        "state_province",
-        "postal_code",
-        "country",
-        "phone",
-        "phone_ext",
-        "fax",
-        "fax_ext",
-        "email",
-        "tags",
-    )
-
-    # TODO: Remove in version 1.3.0 (NetBox #18555)
-    def get_absolute_url(self):
-        return reverse("plugins:netbox_dns:registrationcontact", kwargs={"pk": self.pk})
-
-    def __str__(self):
-        if self.name is not None:
-            return f"{self.contact_id} ({self.name})"
-
-        return self.contact_id
-
-    class Meta:
-        verbose_name = _("Registration Contact")
-        verbose_name_plural = _("Registration Contacts")
-
-        ordering = (
-            "name",
-            "contact_id",
-        )
-
     @property
     def zones(self):
         return (
@@ -150,9 +138,11 @@ class RegistrationContact(NetBoxModel):
 @register_search
 class RegistrationContactIndex(SearchIndex):
     model = RegistrationContact
+
     fields = (
         ("name", 100),
         ("contact_id", 100),
         ("email", 200),
         ("organization", 500),
+        ("description", 500),
     )

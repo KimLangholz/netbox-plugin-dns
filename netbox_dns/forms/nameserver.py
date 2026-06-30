@@ -2,25 +2,22 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from netbox.forms import (
-    NetBoxModelBulkEditForm,
-    NetBoxModelFilterSetForm,
-    NetBoxModelImportForm,
-    NetBoxModelForm,
+    PrimaryModelBulkEditForm,
+    PrimaryModelFilterSetForm,
+    PrimaryModelForm,
+    PrimaryModelImportForm,
 )
-
+from netbox_dns.models import NameServer, Zone
+from netbox_dns.utilities import name_to_unicode
+from tenancy.forms import TenancyFilterForm, TenancyForm
+from tenancy.models import Tenant, TenantGroup
 from utilities.forms.fields import (
-    TagFilterField,
     CSVModelChoiceField,
     DynamicModelChoiceField,
     DynamicModelMultipleChoiceField,
+    TagFilterField,
 )
 from utilities.forms.rendering import FieldSet
-from tenancy.models import Tenant, TenantGroup
-from tenancy.forms import TenancyForm, TenancyFilterForm
-
-from netbox_dns.models import NameServer, Zone
-from netbox_dns.utilities import name_to_unicode
-
 
 __all__ = (
     "NameServerForm",
@@ -30,7 +27,37 @@ __all__ = (
 )
 
 
-class NameServerForm(TenancyForm, NetBoxModelForm):
+class NameServerForm(TenancyForm, PrimaryModelForm):
+    class Meta:
+        model = NameServer
+
+        fields = (
+            "name",
+            "description",
+            "owner",
+            "comments",
+            "tags",
+            "tenant_group",
+            "tenant",
+        )
+
+    fieldsets = (
+        FieldSet(
+            "name",
+            "description",
+            name=_("Nameserver"),
+        ),
+        FieldSet(
+            "tenant_group",
+            "tenant",
+            name=_("Tenancy"),
+        ),
+        FieldSet(
+            "tags",
+            name=_("Tags"),
+        ),
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -38,53 +65,72 @@ class NameServerForm(TenancyForm, NetBoxModelForm):
         if initial_name:
             self.initial["name"] = name_to_unicode(initial_name)
 
-    name = forms.CharField(
-        required=True,
-        label=_("Name"),
-    )
 
-    fieldsets = (
-        FieldSet("name", "description", name=_("Nameserver")),
-        FieldSet("tenant_group", "tenant", name=_("Tenancy")),
-        FieldSet("tags", name=_("Tags")),
-    )
-
-    class Meta:
-        model = NameServer
-        fields = ("name", "description", "tags", "tenant_group", "tenant")
-
-
-class NameServerFilterForm(TenancyFilterForm, NetBoxModelFilterSetForm):
+class NameServerFilterForm(TenancyFilterForm, PrimaryModelFilterSetForm):
     model = NameServer
 
+    fieldsets = (
+        FieldSet(
+            "q",
+            "filter_id",
+            "tag",
+        ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
+        ),
+        FieldSet(
+            "name",
+            "description",
+            "zone_id",
+            "soa_zone_id",
+            "description",
+            name=_("Attributes"),
+        ),
+        FieldSet(
+            "tenant_group_id",
+            "tenant_id",
+            name=_("Tenancy"),
+        ),
+    )
+
     name = forms.CharField(
         required=False,
         label=_("Name"),
-    )
-    zone_id = DynamicModelMultipleChoiceField(
-        queryset=Zone.objects.all(),
-        required=False,
-        label=_("Zones"),
-    )
-    soa_zone_id = DynamicModelMultipleChoiceField(
-        queryset=Zone.objects.all(),
-        required=False,
-        label=_("SOA Zones"),
     )
     description = forms.CharField(
         required=False,
         label=_("Description"),
     )
-    tag = TagFilterField(NameServer)
-
-    fieldsets = (
-        FieldSet("q", "filter_id", "tag"),
-        FieldSet("name", "zone_id", "soa_zone_id", "description", name=_("Attributes")),
-        FieldSet("tenant_group_id", "tenant_id", name=_("Tenancy")),
+    zone_id = DynamicModelMultipleChoiceField(
+        queryset=Zone.objects.all(),
+        required=False,
+        null_option=_("None"),
+        label=_("Zones"),
     )
+    soa_zone_id = DynamicModelMultipleChoiceField(
+        queryset=Zone.objects.all(),
+        required=False,
+        null_option=_("None"),
+        label=_("SOA Zones"),
+    )
+    tag = TagFilterField(model)
 
 
-class NameServerImportForm(NetBoxModelImportForm):
+class NameServerImportForm(PrimaryModelImportForm):
+    class Meta:
+        model = NameServer
+
+        fields = (
+            "name",
+            "description",
+            "owner",
+            "comments",
+            "tenant",
+            "tags",
+        )
+
     name = forms.CharField(
         label=_("Name"),
     )
@@ -95,35 +141,9 @@ class NameServerImportForm(NetBoxModelImportForm):
         label=_("Tenant"),
     )
 
-    class Meta:
-        model = NameServer
 
-        fields = (
-            "name",
-            "description",
-            "tenant",
-            "tags",
-        )
-
-
-class NameServerBulkEditForm(NetBoxModelBulkEditForm):
+class NameServerBulkEditForm(PrimaryModelBulkEditForm):
     model = NameServer
-
-    description = forms.CharField(
-        max_length=200,
-        required=False,
-        label=_("Description"),
-    )
-    tenant_group = DynamicModelChoiceField(
-        queryset=TenantGroup.objects.all(),
-        required=False,
-        label=_("Tenant Group"),
-    )
-    tenant = DynamicModelChoiceField(
-        queryset=Tenant.objects.all(),
-        required=False,
-        label=_("Tenant"),
-    )
 
     fieldsets = (
         FieldSet(
@@ -135,4 +155,18 @@ class NameServerBulkEditForm(NetBoxModelBulkEditForm):
         ),
     )
 
-    nullable_fields = ("description", "tenant")
+    nullable_fields = (
+        "description",
+        "tenant",
+    )
+
+    tenant_group = DynamicModelChoiceField(
+        queryset=TenantGroup.objects.all(),
+        required=False,
+        label=_("Tenant Group"),
+    )
+    tenant = DynamicModelChoiceField(
+        queryset=Tenant.objects.all(),
+        required=False,
+        label=_("Tenant"),
+    )

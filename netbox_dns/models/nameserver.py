@@ -1,26 +1,22 @@
-from dns import name as dns_name
-
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Q, UniqueConstraint
 from django.db.models.functions import Lower
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from dns import name as dns_name
 
-from netbox.models import NetBoxModel
-from netbox.search import SearchIndex, register_search
+from netbox.models import PrimaryModel
 from netbox.models.features import ContactsMixin
 from netbox.plugins.utils import get_plugin_config
-
+from netbox.search import SearchIndex, register_search
+from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.mixins import ObjectModificationMixin
 from netbox_dns.utilities import (
+    NameFormatError,
     name_to_unicode,
     normalize_name,
-    NameFormatError,
 )
-from netbox_dns.choices import RecordTypeChoices
 from netbox_dns.validators import validate_fqdn
-from netbox_dns.mixins import ObjectModificationMixin
-
 
 __all__ = (
     "NameServer",
@@ -28,32 +24,7 @@ __all__ = (
 )
 
 
-class NameServer(ObjectModificationMixin, ContactsMixin, NetBoxModel):
-    name = models.CharField(
-        verbose_name=_("Name"),
-        max_length=255,
-        db_collation="natural_sort",
-    )
-    description = models.CharField(
-        verbose_name=_("Description"),
-        max_length=200,
-        blank=True,
-    )
-    tenant = models.ForeignKey(
-        verbose_name=_("Tenant"),
-        to="tenancy.Tenant",
-        on_delete=models.PROTECT,
-        related_name="netbox_dns_nameservers",
-        blank=True,
-        null=True,
-    )
-
-    clone_fields = (
-        "name",
-        "description",
-        "tenant",
-    )
-
+class NameServer(ObjectModificationMixin, ContactsMixin, PrimaryModel):
     class Meta:
         verbose_name = _("Nameserver")
         verbose_name_plural = _("Nameservers")
@@ -70,25 +41,43 @@ class NameServer(ObjectModificationMixin, ContactsMixin, NetBoxModel):
             ),
         ]
 
+    clone_fields = (
+        "name",
+        "description",
+        "tenant",
+    )
+
     def __str__(self):
         try:
             return dns_name.from_text(self.name, origin=None).to_unicode()
         except dns_name.IDNAException:
             return self.name
 
+    name = models.CharField(
+        verbose_name=_("Name"),
+        max_length=255,
+        db_collation="natural_sort",
+    )
+    tenant = models.ForeignKey(
+        verbose_name=_("Tenant"),
+        to="tenancy.Tenant",
+        on_delete=models.PROTECT,
+        related_name="netbox_dns_nameservers",
+        blank=True,
+        null=True,
+    )
+
     @property
     def display_name(self):
         return name_to_unicode(self.name)
-
-    # TODO: Remove in version 1.3.0 (NetBox #18555)
-    def get_absolute_url(self):
-        return reverse("plugins:netbox_dns:nameserver", kwargs={"pk": self.pk})
 
     def clean_fields(self, exclude=None):
         if get_plugin_config("netbox_dns", "convert_names_to_lowercase", False):
             self.name = self.name.lower()
 
         super().clean_fields(exclude=exclude)
+
+    clean_fields.alters_data = True
 
     def clean(self, *args, **kwargs):
         try:
@@ -110,6 +99,8 @@ class NameServer(ObjectModificationMixin, ContactsMixin, NetBoxModel):
             )
 
         super().clean(*args, **kwargs)
+
+    clean.alters_data = True
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -143,6 +134,7 @@ class NameServer(ObjectModificationMixin, ContactsMixin, NetBoxModel):
 @register_search
 class NameServerIndex(SearchIndex):
     model = NameServer
+
     fields = (
         ("name", 100),
         ("description", 500),

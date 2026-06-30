@@ -1,17 +1,45 @@
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
-from netbox.api.serializers import NetBoxModelSerializer
-from tenancy.api.serializers import TenantSerializer
 from ipam.api.serializers import PrefixSerializer
-
+from netbox.api.serializers import PrimaryModelSerializer
 from netbox_dns.models import View
-
+from tenancy.api.serializers import TenantSerializer
 
 __all__ = ("ViewSerializer",)
 
 
-class ViewSerializer(NetBoxModelSerializer):
+class ViewSerializer(PrimaryModelSerializer):
+    class Meta:
+        model = View
+
+        fields = (
+            "id",
+            "url",
+            "display",
+            "display_url",
+            "name",
+            "description",
+            "comments",
+            "tags",
+            "default_view",
+            "created",
+            "last_updated",
+            "custom_fields",
+            "tenant",
+            "prefixes",
+            "ip_address_filter",
+        )
+
+        brief_fields = (
+            "id",
+            "url",
+            "display",
+            "name",
+            "default_view",
+            "description",
+        )
+
     url = serializers.HyperlinkedIdentityField(
         view_name="plugins-api:netbox_dns-api:view-detail"
     )
@@ -50,22 +78,3 @@ class ViewSerializer(NetBoxModelSerializer):
             view.prefixes.set(prefixes)
 
         return view
-
-    class Meta:
-        model = View
-        fields = (
-            "id",
-            "url",
-            "display",
-            "name",
-            "default_view",
-            "tags",
-            "description",
-            "created",
-            "last_updated",
-            "custom_fields",
-            "tenant",
-            "prefixes",
-            "ip_address_filter",
-        )
-        brief_fields = ("id", "url", "display", "name", "default_view", "description")

@@ -35,7 +35,7 @@ The installation of plugins in general is described in the [NetBox documentation
 ### Requirements
 The installation of NetBox DNS requires a Python interpreter and a working NetBox deployment. The following versions are currently supported:
 
-* NetBox 4.0.0 or higher
+* NetBox 4.3.0 or higher
 * Python 3.10 or higher
 
 ### Compatibility
@@ -50,6 +50,7 @@ NetBox Version | NetBox DNS Version | Comment
 4.0 - 4.1      | 1.0                | Supports legacy IPAM Coupling
 4.0 - 4.1      | 1.1                | Supports IPAM DNSsync
 4.2            | 1.2                |
+4.3            | 1.3                |
 
 For earlier version of NetBox, please use the old version of the PyPI module `netbox-dns`.  Please be aware that this version is no longer supported and will not receive any further updates. We therefore strongly recommend that you move to at least NetBox 3.5 and use the latest supported version of NetBox DNS.
 
@@ -143,7 +144,7 @@ NetBox 3.5.0 up to NetBox 3.7.x are not supported by the latest version of NetBo
 ```
 
 ## Object types
-Currently NetBox DNS can manage eight different object types: Views, Name Servers, Zone Templates, Zones, Record Templates, Records, Registration Contacts and Registrars.
+Currently NetBox DNS can manage ten different object types: Views, Name Servers, Zones, Records, Zone Templates, Record Templates, DNSSEC Key Templates, DNSSEC Policies, Registrars, and Registration Contacts.
 
 For all fields that contain time periods (record TTL and the zone SOA timer fields, just to name a few) there is an alternative way of entering values. Instead of having to convert the desired value to seconds, NetBox DNS supports a subset of the ISO 8601 duration format starting with version 1.2.6. To specify a TTL of one day, the format "P1D" is accepted, which will be converted to 86400 before being written to the database. A time period of 15 hours is written as "PT15H" (the "T" means that the remaining part of the string represents time, not date) is interpreted as 54000. All letters have to be uppercase.
 
@@ -377,7 +378,7 @@ PLUGINS_CONFIG = {
 }
 ```
 
-The default value for 'Generate SOA Serial' (`soa_serial_auto`) is `True` and cannot be modified via the zone default settings. The default setting for SOA SERIAL (`soa_serial`) is only applied if the automatic generation of SOA serial numbers is disabled. The list of default nameservers is only observed when new zones are created or imported via the GUI, not when `Zone` objects are created using scripts.
+The default value for 'Generate SOA Serial' (`soa_serial_auto`) is `True` and cannot be modified via the zone default settings. The default setting for SOA SERIAL (`soa_serial`) is only applied if the automatic generation of SOA serial numbers is disabled. The list of default nameservers is only observed when new zones are created or imported via the GUI, not when `Zone` objects are created using scripts and only if the actual nameserver objects exist.
 
 After changing the configuration, NetBox must be restarted for the changes to take effect.
 
@@ -419,7 +420,7 @@ For records the following fields are defined:
 Field           | Required | Explanation
 -----           | -------- | -----------
 **Zone**        | Yes      | The zone in which the record is to be defined
-**Type**        | Yes      | The type of the resource record. This can be one of a list of record types derived from [RFC 1035, Section 3.3](https://datatracker.ietf.org/doc/html/rfc1035#section-3.3), e.g. A or AAAA. The list of record types can be limited using the configuration variable `filter_record_types`.
+**Type**        | Yes      | The type of the resource record. This can be one of a list of record types derived from [RFC 1035, Section 3.3](https://datatracker.ietf.org/doc/html/rfc1035#section-3.3), e.g. A or AAAA. The list of record types can be limited using the configuration variables `filter_record_types`, `filter_record_types+`, `filter_record_types-`. Defining custom record types is possible as well using the configuration variable `custom_record_types`.
 **Disable PTR** | Yes      | A checkbox indicating whether a PTR record should be generated for an A or AAAA record automatically if there is a zone suitable for the PTR in NetBox DNS
 **Name**        | Yes      | The name of the record, e.g. the simple host name for A and AAAA records
 **Value**       | Yes      | The value of the record, e.g. the IPv4 or IPv6 addreess
@@ -461,7 +462,34 @@ Records can either be displayed by opening the record list view from the "Record
 When importing records in bulk, the mandatory fields are `name`, `zone`, `type` and `value`. If the optional `view` field is not specified, NetBox DNS will always look for the zone specified in `zone` in the default view. To address zones in non-default views, the `view` field must also be specified.
 
 #### Configuration options
-The configuration variable `filter_record_types` can be used to limit the list of record types that are available in the GUI forms. For example if you are tired of IPv4 the creation of `A` records can be disabled by setting
+The configuration variable `filter_record_types` and `filter_record_types+` can be used to limit the list of record types that are available in the GUI forms. The difference is how the list of records specified is applied to the default list of record types: `filter_record_types` **replaces** the default list of filtered record types, while `filter_record_types+` **adds** to the list.
+
+For example if you are tired of IPv4 the creation of A records can be disabled by setting
+
+```
+PLUGINS_CONFIG = {
+    "netbox_dns": {
+        ...
+        "filter_record_types+": [ "A" ],
+        ...
+    }
+}
+```
+This will result in all record types not in the default filter list being available in the GUI except A.
+
+Alternatively it is possible to remove record types from the list by specifying `filter_record_types-` like this:
+```
+PLUGINS_CONFIG = {
+    "netbox_dns": {
+        ...
+        "filter_record_types-": [ "RRSIG" ],
+        ...
+    }
+}
+```
+This will remove RRSIG from the list of filtered types and make it appear in the dropdown menus alongside the other options.
+
+On the other hand the setting
 
 ```
 PLUGINS_CONFIG = {
@@ -472,6 +500,37 @@ PLUGINS_CONFIG = {
     }
 }
 ```
+will result in all record types defined in `dnspython` (which includes a large number of deprecated, reserved, and not recommended record types) being available except A.
+
+It is not possible to add non-supported record types by manipulating the filter list. This can be done with the `custom_record_types` option.
+
+Please note that it's still possible to import other types using the API or via custom scripts, and existing records will still remain in the database. Only the GUI is affected by this setting.
+
+The following table describes the default values for the variables affecting record types:
+
+Variable                             | Factory Default
+--------                             | ---------------
+`filter_record_types`                | `["A6", "AFSDB", "APL", "AVC", "GPOS", "KEY", "L32", "L64",`
+                                     | `"LP", "MB", "MD", "MF", "MG", "MINFO", "MR", "NID", "NINFO",`
+                                     | `"NULL", "NXT", "SIG", "WKS", "RP", "ISDN", "RT", "X25", "NSAP",`
+                                     | `"NSAP_PTR", "PX", "TYPE0", "UNSPEC", "NSEC", "NSEC3", "RRSIG"]`
+`filter_record_types+`               | `[]`
+`filter_record_types-`               | `[]`
+`custom_record_types`                | `[]`
+
+The configuration variable `custom_record_types` can be used to add non-standard record types such as PowerDNS' LUA or Cloudflare's ALIAS.
+
+```
+PLUGINS_CONFIG = {
+    "netbox_dns": {
+        ...
+        "custom_record_types": [ "LUA", "ALIAS" ],
+        ...
+    }
+}
+```
+
+The configured record types will be allowed in the GUI, the API, via custom scripts etc, and they will be treated as valid record types. There is, however, no validation of the values of these record types whatsoever, including the checking of length of the RDATA. If validation of custom record types is desired, a custom validator must be implemented.
 
 ### Registrars
 Registrar objects relate to the DNS domain registration and represent the registrar information for DNS domains related to zones. A DNS zone does not necessarily need to be registered: Zones that are not available via public DNS or that are sub-zones of registered zones do not require registration. In most cases registration information is only required (and possible) for second-level domains.
@@ -639,22 +698,173 @@ Field                | Required | Template Field | Explanation
 -----                | -------- | -------------- | -----------
 **Name**             | Yes      | No             | The name of the zone template
 **Description**      | No       | No             | A short textual description of the zone template
-**Record name**      | Yes      | Yes            | The set of nameservers associated with the zone template
-**Type**             | Yes      | Yes            | The set of record templates associated with the zone template
-**Value**            | Yes      | Yes            | The registrar associated with the zone template
-**Status**           | No       | Yes            | The registrant associated with the zone template
-**TTL**              | No       | Yes            | The administrative contact associated with the zone template
-**Tenant**           | No       | Yes            | A tenant associated with the zone template
-**Tags**             | No       | Yes            | NetBox tags assigned to the zone template
+**Record name**      | Yes      | Yes            | The name of records created from the record template
+**Type**             | Yes      | Yes            | The type of records created from the record template
+**Value**            | Yes      | Yes            | The value of records created from the record template
+**Status**           | No       | Yes            | The status (active or inactive) of records created from the record template
+**TTL**              | No       | Yes            | The TTL of records created from the record template
+**Tenant**           | No       | Yes            | The tenant associated with records created from the record template
+**Tags**             | No       | Yes            | NetBox tags assigned to records created from the record template
 
 Fields marked as "Template Field" are copied to zones that the template is applied to. In the case of record templates, a record for each template will be created in the target zone if there is no record with the same name, type and value yet.
+
+## DNSSEC Support
+NetBox DNS supports the management of DNSSEC in as much as DNSSEC Key Templates and DNSSEC Policies can be stored in NetBox DNS and assigned to zones. It does not, however, support zone signing nor storing cryptographic material in the NetBox database. There are two main reasons for this concept:
+
+1. Storing cryptographic material in a data source for automation is generally problematic. While there is the NetBox Secrets plugin, it is better practice to store confidential data in vault systems specifically created for this purpose. (In some cases the keys are stored in HSMs as an added method of protection.)
+2. In typical modern scenarios, signing servers maintain keys and sign records, so such configurations do not even require having NetBox DNS provide keys or create the signatures from within NetBox DNS.
+
+Additionally, there is no direct integration between NetBox and any given name server implementation, so an interface for providing signed zones to a name server is generally out of scope for NetBox DNS, just as it is the case for serving plain DNS. This should be implemented using specific solutions adapted to the use case and the name server implementation used.
+
+As noted earlier there are two data models for DNSSEC in NetBox DNS: DNSSEC Key Templates and DNSSEC Policies. The former are used for storing parameters for DNSSEC Keys such as the type, algorithm and lifetime, and the latter to define policies that determine how often signatures are regenerated, DS records are propagated etc.
+
+While the implementation is oriented largely towards options BIND 9 provides, this is mainly because that software has a huge set of configuration options and other products are usually not very different, in most cases more limited than BIND 9. Given the large installed base of BIND 9, this is considered a good basis. (There is, however, no reason why NetBox DNS cannot be used to maintain data for, say, Knot-DNS and its KASP (_Key and Signing Policy_) or for generating CLI commands directed at PowerDNS.)
+
+### DNSSEC Key Templates
+A DNSSEC Key template can be considered a boilerplate for creating DNSSEC Keys. There are three types of keys, CSK (combined signing key), KSK (key signing keys) and ZSK (zone signing keys). Each zone needs at least one CSK or ZSK assigned to it for zone signing, while the KSK that's used for signing the ZSKs may be stored offline and rotated less frequently - the CSK is used for both functions, hence the name.
+
+![DNSSEC Key Template Detail](images/DNSSECKeyTemplateDetail.png)
+
+The name and the type of a DNSSEC Key Template together form a unique name, so that for example the ZSK and the KSK of a separate key template pair can have the same name.
+
+#### Permissions
+The following Django permissions are applicable to DNSSECKeyTemplate objects:
+
+Permission                            | Action
+----------                            | ------
+`netbox_dns.add_dnsseckeytemplate`    | Create new DNSSEC key template objects
+`netbox_dns.change_dnsseckeytemplate` | Edit DNSSEC key template information
+`netbox_dns.delete_dnsseckeytemplate` | Delete a DNSSEC key template object
+`netbox_dns.view_dnsseckeytemplate`   | View DNSSEC key template information
+
+To use tags, the `extras.view_tag` permission is required as well.
+
+#### Fields
+The following fields are defined for zone templates:
+
+Field                | Required | Default        | Explanation
+-----                | -------- | -------------- | -----------
+**Name**             | Yes      |                | The name of the DNSSEC key template
+**Description**      | No       |                | A short textual description of the DNSSEC key template
+**Type**             | Yes      |                | The type (CSK, KSK or ZSK) of the DNSSEC key template
+**Lifetime**         | No       |                | The desired lifetime for keys created from the template
+**Algorithm**        | Yes      |                | The algorithm for keys created from the template. Supported algorithms are ECDSAP256SHS256, ECDSAP284SHS384, ED25519, ED448 and RSASHA256.
+**Key Size**         | No       |                | An optional specification of a key size to use for keys. Not all algorithms support this parameter.
+**Tenant**           | No       |                | A tenant associated with the DNSSEC key template
+**Tags**             | No       |                | NetBox tags assigned with the DNSSEC key template
+
+
+### DNSSEC Policies
+A DNSSEC Policy basically bundles sets of DNSSEC Key Templates and parameters for DNSSEC that can then be assigned to zones. When a DNSSEC Policy is created, the sets of records undergo a basic validation that ensures that the records created for a policy can actually be used:
+
+1. A CSK cannot coexist with any of the other key template types,
+2. There can be no more that one key template of each type assigned to the same DNSSEC Policy,
+3. If a ZSK and a KSK are assigned to a DNSSEC Policy they are required to use the same algorithm.
+
+In addition, some basic validation of the lifetime of the key templates (if any) against various timing parameters of the DNSSEC Policy is performed. If there are any problems, they will be displayed in the DNSSEC Policy Detail view.
+
+![DNSSEC Policy Detail](images/DNSSECPolicyDetail.png)
+
+#### Permissions
+The following Django permissions are applicable to DNSSECKeyTemplate objects:
+
+Permission                        | Action
+----------                        | ------
+`netbox_dns.add_dnssecpolicy`     | Create new DNSSEC policy objects
+`netbox_dns.change_ddnssecpolicy` | Edit DNSSEC policy information
+`netbox_dns.delete_dnssecpolicy`  | Delete a DNSSEC policy object
+`netbox_dns.view_dnssecpolicy`    | View DNSSEC policy information
+
+To use tags, the `extras.view_tag` permission is required as well.
+
+#### Fields
+The following fields are defined for zone templates:
+
+Field                            | Required | Default | Explanation
+-----                            | -------- | ------- | -----------
+**Name**                         | Yes      |         | The name of the DNSSEC policy
+**Description**                  | No       |         | A short textual description of the DNSSEC policy
+**Status**                       | Yes      | active  | The status (active or inactive) of the DNSSEC policy
+**Key Templates**                | No       |         | The list of key templates (either CSK or KSK/ZSK) for the DNSSEC policy
+**DNSKEY TTL**                   | No       |         | TTL for the DNSKEY record set in the signed zone
+**Purge Keys**                   | No       | _P90D_  | Time period before keys deleted from a zone are removed from disk
+**Publish Safety**               | No       | _PT1H_  | Time period before the name server starts signing records with a new key
+**Retire Safety**                | No       | _PT1H_  | Time period before the name server removes the old key after rotation
+**Signatures Jitter**            | No       | _PT12H_ | Random time difference applied to new signature lifetimes
+**Signatures Refresh**           | No       | _P5D_   | Specifies how often signatures are refreshed
+**Signatures Validity**          | No       | _P14D_  | The validity period of a newly generated signature
+**Signatures Validity (DNSKEY)** | No       | _P14D_  | The validity period of a newly generated signature for DNSKEY records
+**Max Zone TTL**                 | No       | _P1D_   | The maximum allowed TTL for records
+**Zone Propagation Delay**       | No       | _PT5M_  | The expected time it takes for a zone to be picked up by all secondary servers after changes
+**Create CDNSKEY**               | Yes      | true    | Specified if a CDNSKEY is created during key rollover
+**CDS Digest Types**             | No       |         | Digest types allowed for CDS records
+**Parent DS TTL**                | No       | _P1D_   | TTL of the DS record in the parent zone
+**Parent Propagation Delay**     | No       | _PT1H_  | The expected time it takes for a parent zone to be picked up by all secondary servers after changes
+**Use NSEC3**                    | Yes      | true    | Use NSEC3 for proof of non-existence instead of NSEC
+**NSEC3 Iterations**             | No       |         | NSEC3 hash iterations (should be 0 as per RFC 9276)
+**NSEC3 Opt Out**                | Yes      | false   | NSEC3 opt-out (not recommended)
+**NSEC3 Salt Size**              | No       |         | NSEC3 salt length (using salt for NSEC3 not recommended)
+**Tenant**                       | No       |         | A tenant associated with the DNSSEC policy
+**Tags**                         | No       |         | NetBox tags assigned to the DNSSEC policy
+
+Defaults written in _italics_ are not applied by NetBox DNS in the database, but used when key template lifetimes are validated against DNSSEC Policy parameters. They have been taken from BIND 9 defaults originally, but can be adjusted in the NetBox DNS plugin configuration:
+
+```
+PLUGINS_CONFIG = {
+    "netbox_dns": {
+        ...
+        "dnssec_purge_keys": 7776000,  # P90D
+        "dnssec_publish_safety": 3600,  # PT1H
+        "dnssec_retire_safety": 3600,  # PT1H
+        "dnssec_signatures_jitter": 43200,  # PT12H
+        "dnssec_signatures_refresh": 432000,  # P5D
+        "dnssec_signatures_validity": 1209600,  # P14D
+        "dnssec_signatures_validity_dnskey": 1209600,  # P14D
+        "dnssec_max_zone_ttl": 86400,  # P1D
+        "dnssec_zone_propagation_delay": 300,  # PT5M
+        "dnssec_parent_ds_ttl": 86400,  # P1D
+        "dnssec_parent_propagation_delay": 3600,  # PT1H
+        "dnssec_dnskey_ttl": 3600,  # PT1H
+        ...
+    }
+}
+```
+
+#### DNS Server Configuration
+
+The following table contains the names of configuration settings for two DNS servers which have support for KASP, BIND9 and Knot-DNS.
+
+| NetBox DNS                	| BIND9                         | Knot-DNS                          |
+| ------------------------------|-------------------------------|-----------------------------------|
+| Type	                    	| `keys {csk,ksk,zsk}`	        | `single-type-signing`             |
+| Lifetime	                	| `lifetime`                    | `ksk-lifetime` / `zsk-lifetime`   |
+| Algorithm	                	| `algorithm`                   | `algorithm`                       |
+| Key Size	                	| `keys .. length`              | `ksk-size` / `zsk-size`           |
+| DNSKEY TTL	                | `dnskey-ttl`                  | `dnskey-ttl`                  	|
+| Purge Keys	                | `purge-keys`                  | n.a.                          	|
+| Publish Safety	            | `publish-safety`              | n.a.                          	|
+| Retire Safety	            	| `retire-safety`               | n.a.                              |
+| Signatures Jitter	        	| `signatures-jitter`           | n.a.                              |
+| Signatures Refresh	        | `signatures-refresh`          | `rrsig-refresh`               	|
+| Signatures Validity	        | `signatures-validity`         | `rrsig-lifetime`              	|
+| Signatures Validity (DNSKEY)	| `signatures-validity-dnskey`  | `rrsig-lifetime`                	|
+| Max Zone TTL	            	| `max-zone-ttl`                | `zone-max-ttl`                    |
+| Zone Propagation Delay	    | `parent-propagation-delay`    | `propagation-delay`           	|
+| Create CDNSKEY	            | `cdnskey`                     | `cds-cdnskey-publish`         	|
+| CDS Digest Types	        	| `cds-digest-types`            | `cds-digest-type`                 |
+| Parent DS TTL	            	| `parent-ds-ttl`               | n.a.                              |
+| Parent Propagation Delay    	| `parent-propagation-delay`    | `propagation-delay`             	|
+| Use NSEC3	                	| `nsec3param`                  | `nsec3`                           |
+| NSEC3 Iterations	        	| `nsec3param iterations`       | `nsec3-iterations`                |
+| NSEC3 Opt Out	            	| `nsec3param optout`           | `nsec3-opt-out`                   |
+| NSEC3 Salt Size	            | `nsec3param salt-length`      | `nsec3-salt-length`           	|
+
+Note that some settings within NetBox DNS and BIND9 (after which they are modeled) do not have equivalent settings in Knot-DNS. Also note, that some settings might have differing semantics. Please check the DNS server documentation.
 
 ## Name validation
 The names of DNS Resource Records are subject to a number of RFCs, most notably [RFC1035, Section 2.3.1](https://www.rfc-editor.org/rfc/rfc1035#section-2.3.1), [RFC2181, Section 11](https://www.rfc-editor.org/rfc/rfc2181#section-11) and [RFC5891, Section 4.2.3](https://www.rfc-editor.org/rfc/rfc5891#section-4.2.3). Although the specifications in the RFCs, especially in RFC2181, are rather permissive, most DNS servers enforce them and refuse to load zones containing non-conforming names. NetBox DNS validates RR names before saving records and refuses to accept records not adhering to the standards.
 
 The names of Name Servers, Zones and Records are all used as RR names in DNS, so all of these are validated for conformity to the aforementioned RFCs. When a name does not comply with the RFC rules, NetBox DNS refuses to save the name server, zone or record with an error message indicating the reason for the refusal.
-
-**Please be aware that unlike names, values are not validated. While this is theoretically possible and may be implemented at some point, it is not a trivial task as there is a plethora of RR types with even more value formats.**
 
 ![Record Validation Error](images/RecordValidationError.png)
 
@@ -693,6 +903,13 @@ PLUGINS_CONFIG = {
     },
 }
 ```
+
+## Value validation
+Some limited amount of validation is applied to RR values as well. The validation rules are much less strict than for names because the targets for i.e. CNAME records may be records that are hosted by a different name server that applies different rules for name validation.
+
+The syntax of RR values is validated using `dnspython`, which provides basic syntax checking. This covers a lot of common errors in creating records.
+
+Please not that no validation at all - including length checks - is applied to custom record types allowed using the `custom_record_types` configuration variable.
 
 ## SOA SERIAL validation
 The SOA SERIAL field contains a serial number of a zone that is used to control if and when DNS secondary servers load zone updates from their primary servers. Basically, a secondary server checks for the SOA SERIAL of a zone on the primary server and only transfers the zone if that number is higher than the one it has in its own cached data. This does not depend on whether the transfer has been triggered by the upstream server via `NOTIFY` or whether it is scheduled by the secondary because the SOA REFRESH time has elapsed.
@@ -955,6 +1172,31 @@ Another example shows a conflict at View level when assigning a prefix:
 
 The solution is to either disable automatic DNS record configuration for the affected IP addresses (which retains the original DNS records) or to remove or deactivate the existing address records and try again.
 
+### Record Expiration
+
+In some cases it may be desired to define an expiration date for records, for example for validation `TXT` records that are only necessary for a limited period of time. Starting with NetBox DNS 1.5.10, a feature was added that enables automatic expiration of records.
+
+When the "Expiration Date" is set for a record, the record is supposed to be deactivated when this date is reached. For this automatism to be effective, two conditions need to be met:
+
+* The record expiration job needs to be enabled in NetBox DNS
+* The "Generate SOA SERIAL" feature must be active for the zone (which is the default setting)
+
+The record expiration job is disabled by default because it adds some overhead to NetBox and is not necessary unless the record expiration feature is to be used. To enable it, the `enable_record_exiration_job` variable must be set in the NetBox DNS configuration:
+
+```
+PLUGINS_CONFIG = {
+    'netbox_dns': {
+        ...
+        'enable_record_expiration_job': True,
+        ...
+    },
+}
+```
+
+If enabled, the job runs once daily and sets the status of all records whose expiration date has passed to "Expired". This is an inactive record status and causes the record to be disregarded by provisioning mechanisms.
+
+The expiration job does **not** remove expired records, it just sets their status to "Expired". If such a record needs to be reactivated at a later time, the expiration date must be rescheduled to a time in the future or removed entirely and the status of the record set to "Active". The latter will not happen automatically even when the expiration date is changed or removed.
+
 ### Additional Information for IP Addresses and DNS Records
 When a link between an IP address and a DNS address record is present, additional panes will appear in the IPAM IP address and NetBox DNS record view, as well as in the detail views for NetBox DNS managed records.
 
@@ -995,7 +1237,6 @@ For records automatically generated by DNSsync, this is not generally the desire
 * When an existing environment is migrated to NetBox DNS, there may be existing address records that conflict with the autogenerated ones
 
 For this reason, NetBox DNS does not check uniqueness for address records automatically generated by DNSsync, and there is an option to deactivate other conflicting address records automatically. This is not enabled by default, but it can be switched on with the configuration variable `dnssync_conflict_deactivate`:
-
 
 ```
 PLUGINS_CONFIG = {
@@ -1193,5 +1434,22 @@ PLUGINS_CONFIG = {
 	},
 }
 ```
-
 Every status configured here must be one of the pre-defined statuses or have been defined in `FIELD_CHOICES`. Make sure to include the standard statuses as shown above.
+
+#### <a name="record_default_ttl_customization"></a>Customizing default TTLs for RRTYPEs
+Default TTL values per record type can be configured using the configuration variable `record_type_default_ttl`. This can be useful if a specific record type such as SPF or TLSA should always be created with a or longer TTL, while all other types use the zone default value.
+
+```
+PLUGINS_CONFIG = {
+    'netbox_dns': {
+        'record_type_default_ttl': {
+            'TLSA': 60,
+            'HTTPS': 60,
+            'MX': 300,
+        }
+	},
+}
+```
+The effect of the above setting is that any new TXT, HTTPS. or MX record that is created without a specific TTL assigned will be created with the TTL specified as the value for its type. Records with an explicitly specified TTL will not be modified.
+
+The type-specific TTL is also applied to records created from record templates.

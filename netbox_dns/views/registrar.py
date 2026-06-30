@@ -1,19 +1,16 @@
 from django.utils.translation import gettext as _
 
 from netbox.views import generic
-
-from utilities.views import ViewTab, register_model_view
-
-from netbox_dns.models import Registrar, Zone
 from netbox_dns.filtersets import RegistrarFilterSet, ZoneFilterSet
 from netbox_dns.forms import (
-    RegistrarForm,
-    RegistrarFilterForm,
-    RegistrarImportForm,
     RegistrarBulkEditForm,
+    RegistrarFilterForm,
+    RegistrarForm,
+    RegistrarImportForm,
 )
+from netbox_dns.models import Registrar, Zone
 from netbox_dns.tables import RegistrarTable, ZoneTable
-
+from utilities.views import ViewTab, register_model_view
 
 __all__ = (
     "RegistrarView",
@@ -44,13 +41,11 @@ class RegistrarView(generic.ObjectView):
 class RegistrarEditView(generic.ObjectEditView):
     queryset = Registrar.objects.all()
     form = RegistrarForm
-    default_return_url = "plugins:netbox_dns:registrar_list"
 
 
 @register_model_view(Registrar, "delete")
 class RegistrarDeleteView(generic.ObjectDeleteView):
     queryset = Registrar.objects.all()
-    default_return_url = "plugins:netbox_dns:registrar_list"
 
 
 @register_model_view(Registrar, "bulk_import", detail=False)
@@ -58,7 +53,6 @@ class RegistrarBulkImportView(generic.BulkImportView):
     queryset = Registrar.objects.all()
     model_form = RegistrarImportForm
     table = RegistrarTable
-    default_return_url = "plugins:netbox_dns:registrar_list"
 
 
 @register_model_view(Registrar, "bulk_edit", path="edit", detail=False)

@@ -1,34 +1,36 @@
 import ipaddress
-import netaddr
+from datetime import date
 
 import dns
+import netaddr
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
+from django.db import models
+from django.db.models import BooleanField, ExpressionWrapper, Min, Q
+from django.utils.translation import gettext_lazy as _
 from dns import name as dns_name
 from dns import rdata
 
-from django.core.exceptions import ValidationError
-from django.db import transaction, models
-from django.db.models import Q, ExpressionWrapper, BooleanField, Min
-from django.urls import reverse
-from django.conf import settings
-from django.utils.translation import gettext_lazy as _
-
-from netbox.models import NetBoxModel
-from ipam.models import IPAddress
+from netbox.models import PrimaryModel
 from netbox.models.features import ContactsMixin
-from netbox.search import SearchIndex, register_search
 from netbox.plugins.utils import get_plugin_config
-from utilities.querysets import RestrictedQuerySet
-
-from netbox_dns.fields import AddressField
-from netbox_dns.utilities import arpa_to_prefix, name_to_unicode, get_query_from_filter
-from netbox_dns.validators import validate_generic_name, validate_record_value
-from netbox_dns.mixins import ObjectModificationMixin
+from netbox.search import SearchIndex, register_search
 from netbox_dns.choices import (
-    RecordTypeChoices,
-    RecordStatusChoices,
     RecordClassChoices,
+    RecordStatusChoices,
+    RecordTypeChoices,
 )
-
+from netbox_dns.fields import AddressField
+from netbox_dns.mixins import ObjectModificationMixin
+from netbox_dns.utilities import (
+    arpa_to_prefix,
+    check_filter,
+    get_cidr_address,
+    name_to_unicode,
+)
+from netbox_dns.validators import validate_generic_name, validate_record_value
+from utilities.querysets import RestrictedQuerySet
 
 __all__ = (
     "Record",
@@ -52,16 +54,12 @@ def record_data_from_ip_address(ip_address, zone):
         # -
         return None
 
-    if (
-        zone.view.ip_address_filter is not None
-        and not IPAddress.objects.filter(
-            Q(pk=ip_address.pk), get_query_from_filter(zone.view.ip_address_filter)
-        ).exists()
+    if zone.view.ip_address_filter is not None and not check_filter(
+        ip_address, zone.view.ip_address_filter
     ):
-        # +
-        # IP address does not match the filter
-        # -
         return None
+
+    address = get_cidr_address(ip_address)
 
     data = {
         "name": (
@@ -70,11 +68,9 @@ def record_data_from_ip_address(ip_address, zone):
             .to_text()
         ),
         "type": (
-            RecordTypeChoices.A
-            if ip_address.address.version == 4
-            else RecordTypeChoices.AAAA
+            RecordTypeChoices.A if address.version == 4 else RecordTypeChoices.AAAA
         ),
-        "value": str(ip_address.address.ip),
+        "value": str(address.ip),
         "status": (
             RecordStatusChoices.STATUS_ACTIVE
             if ip_address.status
@@ -115,7 +111,61 @@ class RecordManager(models.Manager.from_queryset(RestrictedQuerySet)):
         )
 
 
-class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
+class Record(ObjectModificationMixin, ContactsMixin, PrimaryModel):
+    class Meta:
+        verbose_name = _("Record")
+        verbose_name_plural = _("Records")
+
+        ordering = (
+            "fqdn",
+            "zone",
+            "name",
+            "type",
+            "value",
+            "status",
+        )
+
+        indexes = (
+            models.Index(fields=["name"], name="netbox_dns_record_name"),
+            models.Index(fields=["fqdn"], name="netbox_dns_record_fqdn"),
+            models.Index(fields=["type"], name="netbox_dns_record_type"),
+            models.Index(fields=["ip_address"], name="netbox_dns_record_ip_address"),
+        )
+
+    objects = RecordManager()
+    raw_objects = RestrictedQuerySet.as_manager()
+
+    clone_fields = (
+        "zone",
+        "type",
+        "name",
+        "value",
+        "status",
+        "ttl",
+        "disable_ptr",
+        "description",
+        "tenant",
+        "expiration_date",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._cleanup_ptr_record = None
+
+    def __str__(self):
+        try:
+            fqdn = dns_name.from_text(
+                self.name, origin=dns_name.from_text(self.zone.name)
+            ).relativize(dns_name.root)
+            name = fqdn.to_unicode()
+        except dns_name.IDNAException:
+            name = fqdn.to_text()
+        except dns_name.LabelTooLong:
+            name = f"{self.name[:59]}..."
+
+        return f"{name} [{self.type}]"
+
     unique_ptr_qs = Q(
         Q(disable_ptr=False),
         Q(Q(type=RecordTypeChoices.A) | Q(type=RecordTypeChoices.AAAA)),
@@ -160,17 +210,18 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         verbose_name=_("TTL"),
         null=True,
         blank=True,
+        validators=[MaxValueValidator(2147483647)],
     )
     managed = models.BooleanField(
         verbose_name=_("Managed"),
         null=False,
         default=False,
     )
-    ptr_record = models.OneToOneField(
-        verbose_name="PTR Record",
+    ptr_record = models.ForeignKey(
+        verbose_name=_("PTR Record"),
         to="self",
         on_delete=models.SET_NULL,
-        related_name="address_record",
+        related_name="address_records",
         null=True,
         blank=True,
     )
@@ -178,11 +229,6 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         verbose_name=_("Disable PTR"),
         help_text=_("Disable PTR record creation"),
         default=False,
-    )
-    description = models.CharField(
-        verbose_name=_("Description"),
-        max_length=200,
-        blank=True,
     )
     tenant = models.ForeignKey(
         verbose_name=_("Tenant"),
@@ -201,7 +247,7 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
     ipam_ip_address = models.ForeignKey(
         verbose_name=_("IPAM IP Address"),
         to="ipam.IPAddress",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="netbox_dns_records",
         blank=True,
         null=True,
@@ -214,47 +260,19 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         null=True,
         blank=True,
     )
-
-    objects = RecordManager()
-    raw_objects = RestrictedQuerySet.as_manager()
-
-    clone_fields = (
-        "zone",
-        "type",
-        "name",
-        "value",
-        "status",
-        "ttl",
-        "disable_ptr",
-        "description",
-        "tenant",
+    expiration_date = models.DateField(
+        verbose_name=_("Expiration Date"),
+        blank=True,
+        null=True,
     )
 
-    class Meta:
-        verbose_name = _("Record")
-        verbose_name_plural = _("Records")
+    @property
+    def cleanup_ptr_record(self):
+        return self._cleanup_ptr_record
 
-        ordering = (
-            "fqdn",
-            "zone",
-            "name",
-            "type",
-            "value",
-            "status",
-        )
-
-    def __str__(self):
-        try:
-            fqdn = dns_name.from_text(
-                self.name, origin=dns_name.from_text(self.zone.name)
-            ).relativize(dns_name.root)
-            name = fqdn.to_unicode()
-        except dns_name.IDNAException:
-            name = fqdn.to_text()
-        except dns_name.LabelTooLong:
-            name = f"{self.name[:59]}..."
-
-        return f"{name} [{self.type}]"
+    @cleanup_ptr_record.setter
+    def cleanup_ptr_record(self, ptr_record):
+        self._cleanup_ptr_record = ptr_record
 
     @property
     def display_name(self):
@@ -262,10 +280,6 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
 
     def get_status_color(self):
         return RecordStatusChoices.colors.get(self.status)
-
-    # TODO: Remove in version 1.3.0 (NetBox #18555)
-    def get_absolute_url(self):
-        return reverse("plugins:netbox_dns:record", kwargs={"pk": self.pk})
 
     @property
     def value_fqdn(self):
@@ -301,12 +315,23 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         )
 
     @property
+    def is_expired(self):
+        if self.expiration_date is None:
+            return False
+
+        return self.expiration_date < date.today()
+
+    @property
     def is_address_record(self):
         return self.type in (RecordTypeChoices.A, RecordTypeChoices.AAAA)
 
     @property
     def is_ptr_record(self):
         return self.type == RecordTypeChoices.PTR
+
+    @property
+    def rrset(self):
+        return self.zone.records.filter(type=self.type, name=self.name)
 
     @property
     def rfc2317_ptr_name(self):
@@ -341,33 +366,86 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
             if ptr_zone is not None:
                 return ptr_zone
 
-        ptr_zone = (
+        return (
             self.zone.view.zones.filter(arpa_network__net_contains=self.value)
             .order_by("arpa_network__net_mask_length")
             .last()
         )
 
-        return ptr_zone
-
     @property
     def is_delegation_record(self):
         return self in self.zone.delegation_records
 
+    def check_zone_cut_conflict(self):
+        record_name = dns_name.from_text(self.fqdn)
+
+        for zone in self.zone.descendant_zones:
+            zone_name = dns_name.from_text(zone.fqdn)
+
+            if not record_name.is_subdomain(zone_name):
+                continue
+
+            if (
+                self.type
+                in (
+                    RecordTypeChoices.NS,
+                    RecordTypeChoices.DS,
+                )
+                and record_name == zone_name
+            ):
+                continue
+
+            if self.type in (
+                RecordTypeChoices.A,
+                RecordTypeChoices.AAAA,
+            ) and record_name in (
+                dns_name.from_text(nameserver.name)
+                for nameserver in zone.nameservers.all()
+            ):
+                continue
+
+            raise ValidationError(
+                _("{fqdn} is masked by child zone {zone}").format(
+                    fqdn=self.fqdn.rstrip("."), zone=zone.name
+                )
+            )
+
+    def refresh_ptr_record(
+        self, ptr_record=None, update_rfc2317_cname=True, save_zone_serial=True
+    ):
+        if ptr_record is None:
+            return
+
+        if not ptr_record.address_records.exists():
+            if ptr_record.rfc2317_cname_record is not None:
+                ptr_record.remove_from_rfc2317_cname_record()
+
+            ptr_record.delete(save_zone_serial=save_zone_serial)
+
+        elif update_rfc2317_cname:
+            ptr_record.update_rfc2317_cname_record(save_zone_serial=save_zone_serial)
+
     def update_ptr_record(self, update_rfc2317_cname=True, save_zone_serial=True):
         ptr_zone = self.ptr_zone
 
+        # +
+        # Check whether a PTR record is optioned for and return if that is not the
+        # case.
+        # -
         if (
             ptr_zone is None
             or self.disable_ptr
             or not self.is_active
             or self.name.startswith("*")
         ):
-            if self.ptr_record is not None:
-                with transaction.atomic():
-                    self.ptr_record.delete()
-                    self.ptr_record = None
+            self.cleanup_ptr_record = self.ptr_record
+            self.ptr_record = None
             return
 
+        # +
+        # Determine the ptr_name and ptr_value related to the ptr_zone. RFC2317
+        # PTR names and zones need to be handled differently.
+        # -
         if ptr_zone.is_rfc2317_zone:
             ptr_name = self.rfc2317_ptr_name
         else:
@@ -376,53 +454,102 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
                 .relativize(dns_name.from_text(ptr_zone.name))
                 .to_text()
             )
-
         ptr_value = self.fqdn
-        ptr_record = self.ptr_record
 
-        if ptr_record is not None:
+        # +
+        # If there is an existing and matching PTR record there is nothing to be done.
+        # -
+        if (ptr_record := self.ptr_record) is not None:
             if (
-                not ptr_record.zone.is_rfc2317_zone
-                and ptr_record.rfc2317_cname_record is not None
+                ptr_record.zone == ptr_zone
+                and ptr_record.name == ptr_name
+                and ptr_record.value == ptr_value
+                and ptr_record.ttl == self.ttl
             ):
+                return
+
+            # +
+            # If the existing PTR record no longer matches the address record,
+            # check whether there is an existing PTR record that does. In that
+            # case, mark the old PTR record for cleanup and use the existing one.
+            # -
+            try:
+                existing_ptr_record = Record.objects.get(
+                    name=ptr_name,
+                    zone=ptr_zone,
+                    type=RecordTypeChoices.PTR,
+                    value=ptr_value,
+                )
+
+                self.cleanup_ptr_record = self.ptr_record
+                self.ptr_record = existing_ptr_record
+                ptr_record = self.ptr_record
+
+            except Record.DoesNotExist:
+                pass
+
+            # +
+            # If there is an RFC2317 CNAME for the PTR record and it is either
+            # not required or needs to be changed, remove it.
+            # -
+            if (
+                ptr_record.zone.pk != ptr_zone.pk or not ptr_record.zone.is_rfc2317_zone
+            ) and ptr_record.rfc2317_cname_record is not None:
                 ptr_record.rfc2317_cname_record.delete(
                     save_zone_serial=save_zone_serial
                 )
+                ptr_record.rfc2317_cname_record = None
 
-        with transaction.atomic():
-            if ptr_record is not None:
-                if ptr_record.zone.pk != ptr_zone.pk:
-                    if ptr_record.rfc2317_cname_record is not None:
-                        ptr_record.rfc2317_cname_record.delete()
-                    ptr_record.delete(save_zone_serial=save_zone_serial)
-                    ptr_record = None
-
-                else:
-                    if (
-                        ptr_record.name != ptr_name
-                        or ptr_record.value != ptr_value
-                        or ptr_record.ttl != self.ttl
-                    ):
-                        ptr_record.name = ptr_name
-                        ptr_record.value = ptr_value
-                        ptr_record.ttl = self.ttl
-                        ptr_record.save(save_zone_serial=save_zone_serial)
-
-            if ptr_record is None:
-                ptr_record = Record(
-                    zone_id=ptr_zone.pk,
-                    type=RecordTypeChoices.PTR,
-                    name=ptr_name,
-                    ttl=self.ttl,
-                    value=ptr_value,
-                    managed=True,
-                )
+            # +
+            # If the PTR record is used exclusively by the address record it can be
+            # modified to match the new name, zone, value and TTL.
+            # -
+            if ptr_record.address_records.count() == 1:
+                ptr_record.snapshot()
+                ptr_record.zone = ptr_zone
+                ptr_record.name = ptr_name
+                ptr_record.value = ptr_value
+                ptr_record.ttl = self.ttl
+                ptr_record.managed = True
                 ptr_record.save(
                     update_rfc2317_cname=update_rfc2317_cname,
                     save_zone_serial=save_zone_serial,
                 )
+                return
+
+        # +
+        # Either there was no PTR record or the existing PTR record could not be re-used,
+        # so we need to either find a matching PTR record or create a new one.
+        # -
+        try:
+            ptr_record = Record.objects.get(
+                name=ptr_name,
+                zone=ptr_zone,
+                type=RecordTypeChoices.PTR,
+                value=ptr_value,
+            )
+
+        # +
+        # If no existing PTR record could be found in the database, create a new
+        # one from scratch.
+        # -
+        except Record.DoesNotExist:
+            ptr_record = Record(
+                zone_id=ptr_zone.pk,
+                type=RecordTypeChoices.PTR,
+                name=ptr_name,
+                ttl=self.ttl,
+                value=ptr_value,
+                managed=True,
+            )
+            ptr_record.save(
+                update_rfc2317_cname=update_rfc2317_cname,
+                save_zone_serial=save_zone_serial,
+            )
 
         self.ptr_record = ptr_record
+
+    update_ptr_record.alters_data = True
 
     def remove_from_rfc2317_cname_record(self, save_zone_serial=True):
         if self.rfc2317_cname_record.pk:
@@ -439,6 +566,8 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
                 )
             else:
                 self.rfc2317_cname_record.delete()
+
+    remove_from_rfc2317_cname_record.alters_data = True
 
     def update_rfc2317_cname_record(self, save_zone_serial=True):
         if self.zone.rfc2317_parent_managed:
@@ -504,6 +633,8 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
                 self.rfc2317_cname_record.delete(save_zone_serial=save_zone_serial)
                 self.rfc2317_cname_record = None
 
+    update_rfc2317_cname_record.alters_data = True
+
     def update_from_ip_address(self, ip_address, zone=None):
         """
         Update an address record according to data from an IPAddress object.
@@ -521,7 +652,7 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         if data is None:
             return False, True
 
-        if all((getattr(self, attr) == data[attr] for attr in data.keys())):
+        if all(getattr(self, attr) == data[attr] for attr in data.keys()):
             return False, False
 
         for attr, value in data.items():
@@ -529,12 +660,14 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
 
         return True, False
 
+    update_from_ip_address.alters_data = True
+
     @classmethod
     def create_from_ip_address(cls, ip_address, zone):
         data = record_data_from_ip_address(ip_address, zone)
 
         if data is None:
-            return
+            return None
 
         return Record(
             zone=zone,
@@ -542,6 +675,8 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
             ipam_ip_address=ip_address,
             **data,
         )
+
+    create_from_ip_address.alters_data = True
 
     def update_fqdn(self, zone=None):
         if zone is None:
@@ -565,6 +700,8 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
 
         self.name = name.relativize(_zone).to_text()
         self.fqdn = fqdn.to_text()
+
+    update_fqdn.alters_data = True
 
     def validate_name(self, new_zone=None):
         if new_zone is None:
@@ -601,6 +738,14 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
                         "name": exc,
                     }
                 )
+
+        if get_plugin_config("netbox_dns", "enforce_zone_cut_checking"):
+            try:
+                self.check_zone_cut_conflict()
+            except ValidationError as exc:
+                raise ValidationError({"name": exc})
+
+    validate_name.alters_data = True
 
     def validate_value(self):
         try:
@@ -649,6 +794,9 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
 
     @property
     def absolute_value(self):
+        if self.type in RecordTypeChoices.CUSTOM_TYPES:
+            return self.value
+
         zone = dns_name.from_text(self.zone.name)
         rr = rdata.from_text(RecordClassChoices.IN, self.type, self.value)
 
@@ -703,6 +851,17 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
             record.status = RecordStatusChoices.STATUS_INACTIVE
             record.save(update_fields=["status"])
 
+    handle_conflicting_address_records.alters_data = True
+
+    @property
+    def default_ttl(self):
+        if self.ttl is not None:
+            return self.ttl
+
+        return get_plugin_config("netbox_dns", "record_type_default_ttl", {}).get(
+            self.type
+        )
+
     def check_unique_rrset_ttl(self):
         if not self._state.adding:
             return
@@ -734,7 +893,11 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         if not records.exists():
             return
 
-        conflicting_ttls = ", ".join({str(record.ttl) for record in records})
+        conflicting_ttls = {record.ttl for record in records}
+        if len(conflicting_ttls) == 1 and self.ttl is None:
+            self.ttl = conflicting_ttls.pop()
+            return
+
         raise ValidationError(
             {
                 "ttl": _(
@@ -743,10 +906,12 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
                     type=self.type,
                     name=self.name,
                     zone=self.zone,
-                    ttls=conflicting_ttls,
+                    ttls=", ".join(str(ttl) for ttl in conflicting_ttls),
                 )
             }
         )
+
+    check_unique_rrset_ttl.alters_data = True
 
     def update_rrset_ttl(self, ttl=None):
         if self._state.adding:
@@ -776,6 +941,8 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
             record.ttl = ttl
             record.save(update_fields=["ttl"], update_rrset_ttl=False)
 
+    update_rrset_ttl.alters_data = True
+
     def clean_fields(self, exclude=None):
         self.type = self.type.upper()
         if get_plugin_config("netbox_dns", "convert_names_to_lowercase", False):
@@ -783,12 +950,21 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
 
         super().clean_fields(exclude=exclude)
 
+    clean_fields.alters_data = True
+
     def clean(self, *args, new_zone=None, **kwargs):
         self.validate_name(new_zone=new_zone)
         self.validate_value()
         self.check_unique_record(new_zone=new_zone)
+        self.ttl = self.default_ttl
         if self._state.adding:
             self.check_unique_rrset_ttl()
+
+        if not self.is_address_record:
+            self.disable_ptr = False
+
+        if self.is_expired:
+            self.status = RecordStatusChoices.STATUS_EXPIRED
 
         if not self.is_active:
             return
@@ -874,6 +1050,8 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
 
         super().clean(*args, **kwargs)
 
+    clean.alters_data = True
+
     def save(
         self,
         *args,
@@ -907,12 +1085,18 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
                 save_zone_serial=save_zone_serial,
             )
         elif self.ptr_record is not None:
-            self.ptr_record.delete()
+            self.cleanup_ptr_record = self.ptr_record
             self.ptr_record = None
 
         changed_fields = self.changed_fields
         if changed_fields is None or changed_fields:
             super().save(*args, **kwargs)
+
+            self.refresh_ptr_record(
+                self.cleanup_ptr_record,
+                update_rfc2317_cname=update_rfc2317_cname,
+                save_zone_serial=save_zone_serial,
+            )
 
             if self.type != RecordTypeChoices.SOA and self.zone.soa_serial_auto:
                 self.zone.update_serial(save_zone_serial=save_zone_serial)
@@ -921,10 +1105,15 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         if self.rfc2317_cname_record:
             self.remove_from_rfc2317_cname_record(save_zone_serial=save_zone_serial)
 
-        if self.ptr_record:
-            self.ptr_record.delete()
+        ptr_record = self.ptr_record
 
         super().delete(*args, **kwargs)
+
+        self.refresh_ptr_record(
+            ptr_record,
+            update_rfc2317_cname=True,
+            save_zone_serial=save_zone_serial,
+        )
 
         _zone = self.zone
         if _zone.soa_serial_auto:
@@ -934,10 +1123,12 @@ class Record(ObjectModificationMixin, ContactsMixin, NetBoxModel):
 @register_search
 class RecordIndex(SearchIndex):
     model = Record
+
     fields = (
         ("fqdn", 100),
         ("name", 120),
         ("value", 150),
         ("zone", 200),
         ("type", 200),
+        ("description", 500),
     )

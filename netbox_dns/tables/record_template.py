@@ -1,12 +1,16 @@
 import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
-from netbox.tables import NetBoxTable, TagColumn, ActionsColumn
-from tenancy.tables import TenancyColumnsMixin
-
+from netbox.tables import (
+    ActionsColumn,
+    BooleanColumn,
+    PrimaryModelTable,
+    TagColumn,
+    TemplateColumn,
+)
 from netbox_dns.models import RecordTemplate
 from netbox_dns.utilities import value_to_unicode
-
+from tenancy.tables import TenancyColumnsMixin
 
 __all__ = (
     "RecordTemplateTable",
@@ -14,7 +18,24 @@ __all__ = (
 )
 
 
-class RecordTemplateTable(TenancyColumnsMixin, NetBoxTable):
+class RecordTemplateTable(TenancyColumnsMixin, PrimaryModelTable):
+    class Meta(PrimaryModelTable.Meta):
+        model = RecordTemplate
+
+        fields = (
+            "status",
+            "description",
+        )
+
+        default_columns = (
+            "name",
+            "record_name",
+            "ttl",
+            "type",
+            "value",
+            "tags",
+        )
+
     name = tables.Column(
         verbose_name=_("Name"),
         linkify=True,
@@ -25,11 +46,11 @@ class RecordTemplateTable(TenancyColumnsMixin, NetBoxTable):
     type = tables.Column(
         verbose_name=_("Type"),
     )
-    value = tables.TemplateColumn(
+    value = TemplateColumn(
         verbose_name=_("Value"),
         template_code="{{ value|truncatechars:64 }}",
     )
-    unicode_value = tables.TemplateColumn(
+    unicode_value = TemplateColumn(
         verbose_name=_("Unicode Value"),
         template_code="{{ value|truncatechars:64 }}",
         accessor="value",
@@ -37,7 +58,7 @@ class RecordTemplateTable(TenancyColumnsMixin, NetBoxTable):
     ttl = tables.Column(
         verbose_name=_("TTL"),
     )
-    disable_ptr = tables.BooleanColumn(
+    disable_ptr = BooleanColumn(
         verbose_name=_("Disable PTR"),
     )
     tags = TagColumn(
@@ -47,31 +68,16 @@ class RecordTemplateTable(TenancyColumnsMixin, NetBoxTable):
     def render_unicode_value(self, value):
         return value_to_unicode(value)
 
-    class Meta(NetBoxTable.Meta):
-        model = RecordTemplate
-        fields = (
-            "status",
-            "description",
-        )
-        default_columns = (
-            "name",
-            "record_name",
-            "ttl",
-            "type",
-            "value",
-            "tags",
-        )
-
 
 class RecordTemplateDisplayTable(RecordTemplateTable):
-    actions = ActionsColumn(actions="")
-
-    class Meta(NetBoxTable.Meta):
+    class Meta(PrimaryModelTable.Meta):
         model = RecordTemplate
+
         fields = (
             "status",
             "description",
         )
+
         default_columns = (
             "name",
             "record_name",
@@ -79,3 +85,5 @@ class RecordTemplateDisplayTable(RecordTemplateTable):
             "type",
             "value",
         )
+
+    actions = ActionsColumn(actions="")

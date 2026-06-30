@@ -1,9 +1,11 @@
+from django.test import TestCase
 from dns import rdata
 
-from django.test import TestCase
-
+from netbox_dns.choices import (
+    RecordClassChoices,
+    RecordTypeChoices,
+)
 from netbox_dns.models import NameServer, Record, Zone
-from netbox_dns.choices import RecordClassChoices, RecordTypeChoices
 
 
 def parse_soa_value(soa):

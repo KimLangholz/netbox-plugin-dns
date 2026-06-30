@@ -1,16 +1,13 @@
+from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
+from django.db import models
+from django.utils.translation import gettext_lazy as _
 from dns import name as dns_name
 from dns.exception import DNSException
 
-from django.db import models
-from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ValidationError
-
-from netbox.models import NetBoxModel
+from netbox.models import PrimaryModel
 from netbox.search import SearchIndex, register_search
-
 from netbox_dns.validators import validate_rname
-
 
 __all__ = (
     "ZoneTemplate",
@@ -18,17 +15,50 @@ __all__ = (
 )
 
 
-class ZoneTemplate(NetBoxModel):
+class ZoneTemplate(PrimaryModel):
+    class Meta:
+        verbose_name = _("Zone Template")
+        verbose_name_plural = _("Zone Templates")
+
+        ordering = ("name",)
+
+    clone_fields = (
+        "description",
+        "nameservers",
+        "record_templates",
+        "soa_mname",
+        "soa_rname",
+        "dnssec_policy",
+        "parental_agents",
+        "registrar",
+        "registrant",
+        "admin_c",
+        "tech_c",
+        "billing_c",
+        "tenant",
+    )
+
+    template_fields = (
+        "soa_mname",
+        "soa_rname",
+        "dnssec_policy",
+        "parental_agents",
+        "registrar",
+        "registrant",
+        "admin_c",
+        "tech_c",
+        "billing_c",
+        "tenant",
+    )
+
+    def __str__(self):
+        return str(self.name)
+
     name = models.CharField(
         verbose_name=_("Template Name"),
         unique=True,
         max_length=200,
         db_collation="natural_sort",
-    )
-    description = models.CharField(
-        verbose_name=_("Description"),
-        max_length=200,
-        blank=True,
     )
     nameservers = models.ManyToManyField(
         verbose_name=_("Nameservers"),
@@ -55,13 +85,21 @@ class ZoneTemplate(NetBoxModel):
         related_name="zone_templates",
         blank=True,
     )
-    tenant = models.ForeignKey(
-        verbose_name=_("Tenant"),
-        to="tenancy.Tenant",
+    dnssec_policy = models.ForeignKey(
+        verbose_name=_("DNSSEC Policy"),
+        to="DNSSECPolicy",
         on_delete=models.SET_NULL,
-        related_name="+",
+        related_name="zone_templates",
         blank=True,
         null=True,
+    )
+    parental_agents = ArrayField(
+        base_field=models.GenericIPAddressField(
+            protocol="both",
+        ),
+        blank=True,
+        null=True,
+        default=list,
     )
     registrar = models.ForeignKey(
         verbose_name=_("Registrar"),
@@ -103,42 +141,14 @@ class ZoneTemplate(NetBoxModel):
         blank=True,
         null=True,
     )
-
-    clone_fields = (
-        "description",
-        "nameservers",
-        "record_templates",
-        "tenant",
-        "registrar",
-        "registrant",
-        "admin_c",
-        "tech_c",
-        "billing_c",
+    tenant = models.ForeignKey(
+        verbose_name=_("Tenant"),
+        to="tenancy.Tenant",
+        on_delete=models.SET_NULL,
+        related_name="+",
+        blank=True,
+        null=True,
     )
-
-    template_fields = (
-        "soa_mname",
-        "soa_rname",
-        "tenant",
-        "registrar",
-        "registrant",
-        "admin_c",
-        "tech_c",
-        "billing_c",
-    )
-
-    class Meta:
-        verbose_name = _("Zone Template")
-        verbose_name_plural = "Zone Templates"
-
-        ordering = ("name",)
-
-    def __str__(self):
-        return str(self.name)
-
-    # TODO: Remove in version 1.3.0 (NetBox #18555)
-    def get_absolute_url(self):
-        return reverse("plugins:netbox_dns:zonetemplate", kwargs={"pk": self.pk})
 
     def apply_to_zone_data(self, data):
         fields_changed = False
@@ -148,6 +158,8 @@ class ZoneTemplate(NetBoxModel):
                 data[field] = getattr(self, field)
 
         return fields_changed
+
+    apply_to_zone_data.alters_data = True
 
     def apply_to_zone_relations(self, zone):
         if not zone.nameservers.all() and self.nameservers.all():
@@ -161,6 +173,8 @@ class ZoneTemplate(NetBoxModel):
     def create_records(self, zone):
         for record_template in self.record_templates.all():
             record_template.create_record(zone=zone)
+
+    apply_to_zone_relations.alters_data = True
 
     def clean(self, *args, **kwargs):
         if self.soa_rname:
@@ -178,6 +192,7 @@ class ZoneTemplate(NetBoxModel):
 @register_search
 class ZoneTemplateIndex(SearchIndex):
     model = ZoneTemplate
+
     fields = (
         ("name", 100),
         ("tenant", 300),

@@ -1,11 +1,11 @@
 import re
 
+from django.utils.dateparse import parse_duration
 from dns import name as dns_name
 from dns.exception import DNSException
-from netaddr import IPNetwork, AddrFormatError
+from netaddr import AddrFormatError, IPNetwork
 
 from netbox.plugins.utils import get_plugin_config
-
 
 __all__ = (
     "NameFormatError",
@@ -15,6 +15,7 @@ __all__ = (
     "normalize_name",
     "network_to_reverse",
     "regex_from_list",
+    "iso8601_to_int",
 )
 
 
@@ -42,7 +43,7 @@ def arpa_to_prefix(arpa_name):
 
         try:
             return IPNetwork(
-                f"{':'.join([(address[i:i+4]) for i in range(0, 32, 4)])}/{mask*4}"
+                f"{':'.join([(address[i : i + 4]) for i in range(0, 32, 4)])}/{mask * 4}"
             )
         except AddrFormatError:
             return None
@@ -89,10 +90,10 @@ def network_to_reverse(network):
     try:
         ip_network = IPNetwork(network)
     except AddrFormatError:
-        return
+        return None
 
     if ip_network.first == ip_network.last:
-        return
+        return None
 
     labels = None
     match ip_network.version:
@@ -103,11 +104,28 @@ def network_to_reverse(network):
             if not ip_network.prefixlen % 4:
                 labels = 3 + ip_network.prefixlen // 4
         case _:
-            return
+            return None
 
     if labels:
         return ".".join(ip_network[0].reverse_dns.split(".")[-labels:])
 
+    return None
+
 
 def regex_from_list(names):
     return f"^({'|'.join(re.escape(name) for name in names)})$"
+
+
+def iso8601_to_int(value):
+    if value in (None, "true", "false"):
+        return None
+
+    try:
+        return int(value)
+
+    except ValueError:
+        duration = parse_duration(value)
+        if duration is None:
+            raise TypeError
+
+        return int(duration.total_seconds())

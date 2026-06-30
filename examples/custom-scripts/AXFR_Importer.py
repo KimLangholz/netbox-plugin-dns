@@ -12,16 +12,12 @@
 # from an authoritatve name server.
 # -
 
-from dns.zone import from_xfr
-from dns import rdatatype
-from dns import tsig, tsigkeyring
+from dns import rdataclass, rdatatype, tsig, tsigkeyring
 from dns.query import xfr
-from dns import rdataclass
+from dns.zone import from_xfr
 
-from extras.scripts import Script, StringVar, BooleanVar, ObjectVar, ChoiceVar
-
-from netbox_dns.models import View, Zone, Record, NameServer
-
+from extras.scripts import BooleanVar, ChoiceVar, ObjectVar, Script, StringVar
+from netbox_dns.models import NameServer, Record, View, Zone
 
 name = "AXFR Zone Importer"
 
@@ -170,7 +166,6 @@ class AXFRImporter(Script):
         for name, node in axfr_zone.nodes.items():
             name = name.relativize(origin)
             for rdataset in node.rdatasets:
-
                 if rdataset.rdclass != rdataclass.IN:
                     continue
 

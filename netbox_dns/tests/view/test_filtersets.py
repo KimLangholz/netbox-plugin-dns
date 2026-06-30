@@ -1,11 +1,10 @@
 from django.test import TestCase
 
-from tenancy.models import Tenant, TenantGroup
 from ipam.models import Prefix
-from utilities.testing import ChangeLoggedFilterSetTests
-
-from netbox_dns.models import View
 from netbox_dns.filtersets import ViewFilterSet
+from netbox_dns.models import View
+from tenancy.models import Tenant, TenantGroup
+from utilities.testing import ChangeLoggedFilterSetTests
 
 
 class ViewFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
@@ -31,14 +30,18 @@ class ViewFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         Tenant.objects.bulk_create(cls.tenants)
 
         cls.views = (
-            View(name="View 1", tenant=cls.tenants[0]),
-            View(name="View 2", tenant=cls.tenants[1]),
-            View(name="View 3", tenant=cls.tenants[2]),
+            View(name="View 1", description="Test View 1", tenant=cls.tenants[0]),
+            View(name="View 2", description="Test View 2", tenant=cls.tenants[1]),
+            View(name="View 3", description="Test View 3", tenant=cls.tenants[2]),
         )
         View.objects.bulk_create(cls.views)
 
     def test_name(self):
         params = {"name": ["View 1", "View 2"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_description(self):
+        params = {"description": ["Test View 1", "Test View 2"]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
     def test_default_view(self):

@@ -1,18 +1,18 @@
 from copy import deepcopy
 
-from netaddr import IPNetwork
-
-from django.test import TestCase, override_settings
+from django.conf import settings
 from django.core import management
 from django.core.exceptions import ValidationError
-from django.conf import settings
+from django.test import TestCase, override_settings
+from netaddr import IPNetwork
 
-from ipam.models import IPAddress, Prefix
+from core.models import ObjectType
+from extras.choices import CustomFieldTypeChoices
+from extras.models import CustomField
 from ipam.choices import IPAddressStatusChoices
-
-from netbox_dns.models import View, Zone, NameServer, Record
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices
-
+from ipam.models import IPAddress, Prefix
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
+from netbox_dns.models import NameServer, Record, View, Zone
 
 zone_defaults = settings.PLUGINS_CONFIG.get("netbox_dns")
 
@@ -20,31 +20,38 @@ zone_defaults = settings.PLUGINS_CONFIG.get("netbox_dns")
 class DNSsyncIPAddressTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
+        management.call_command("setup_dnssync", verbosity=0)
+
         cls.zone_data = {
             "soa_mname": NameServer.objects.create(name="ns1.example.com"),
             "soa_rname": "hostmaster.example.com",
         }
 
-        view = View.get_default_view()
+        cls.view = View.get_default_view()
+
         cls.zone = Zone.objects.create(name="zone1.example.com", **cls.zone_data)
+        cls.reverse4_zone = Zone.objects.create(
+            name="0.0.10.in-addr.arpa", **cls.zone_data
+        )
+        cls.reverse6_zone = Zone.objects.create(
+            name="8.b.d.0.1.0.0.2.ip6.arpa", **cls.zone_data
+        )
 
         prefixes = (
             Prefix(prefix="10.0.0.0/24"),
-            Prefix(prefix="fe80:dead:beef:0::/64"),
+            Prefix(prefix="2001:db8::/64"),
         )
         Prefix.objects.bulk_create(prefixes)
 
-        view.prefixes.add(prefixes[0])
-        view.prefixes.add(prefixes[1])
-
-        management.call_command("setup_dnssync", verbosity=0)
+        cls.view.prefixes.add(prefixes[0])
+        cls.view.prefixes.add(prefixes[1])
 
     def test_create_ip_address(self):
         ipv4_address = IPAddress.objects.create(
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
@@ -73,7 +80,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="zone1.example.com"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="zone1.example.com",
         )
 
@@ -88,7 +95,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.short"
         )
         IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.short",
         )
 
@@ -106,7 +113,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.short"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.short",
         )
 
@@ -124,7 +131,7 @@ class DNSsyncIPAddressTestCase(TestCase):
                 name="name2",
                 zone=self.zone,
                 type=RecordTypeChoices.AAAA,
-                value="fe80:dead:beef::1",
+                value="2001:db8::1",
             ),
         )
         for record in records:
@@ -136,7 +143,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             )
         with self.assertRaises(ValidationError):
             IPAddress.objects.create(
-                address=IPNetwork("fe80:dead:beef::1/64"),
+                address=IPNetwork("2001:db8::1/64"),
                 dns_name="name2.zone1.example.com",
             )
 
@@ -161,7 +168,7 @@ class DNSsyncIPAddressTestCase(TestCase):
                     name="name2",
                     zone=self.zone,
                     type=RecordTypeChoices.AAAA,
-                    value="fe80:dead:beef::1",
+                    value="2001:db8::1",
                 ),
             )
             for record in records:
@@ -171,13 +178,13 @@ class DNSsyncIPAddressTestCase(TestCase):
                 address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
             )
             ipv6_address = IPAddress.objects.create(
-                address=IPNetwork("fe80:dead:beef::1/64"),
+                address=IPNetwork("2001:db8::1/64"),
                 dns_name="name2.zone1.example.com",
             )
 
             for record in records:
                 record.refresh_from_db()
-                self.assertTrue(record.status, RecordStatusChoices.STATUS_INACTIVE)
+                self.assertEqual(record.status, RecordStatusChoices.STATUS_INACTIVE)
             self.assertTrue(
                 Record.objects.filter(ipam_ip_address=ipv4_address).exists()
             )
@@ -202,7 +209,7 @@ class DNSsyncIPAddressTestCase(TestCase):
                     name="name2",
                     zone=self.zone,
                     type=RecordTypeChoices.AAAA,
-                    value="fe80:dead:beef::1",
+                    value="2001:db8::1",
                     ttl=86400,
                 ),
             )
@@ -213,13 +220,13 @@ class DNSsyncIPAddressTestCase(TestCase):
                 address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
             )
             ipv6_address = IPAddress.objects.create(
-                address=IPNetwork("fe80:dead:beef::1/64"),
+                address=IPNetwork("2001:db8::1/64"),
                 dns_name="name2.zone1.example.com",
             )
 
             for record in records:
                 record.refresh_from_db()
-                self.assertTrue(record.status, RecordStatusChoices.STATUS_INACTIVE)
+                self.assertEqual(record.status, RecordStatusChoices.STATUS_INACTIVE)
             self.assertTrue(
                 Record.objects.filter(ipam_ip_address=ipv4_address).exists()
             )
@@ -232,7 +239,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
@@ -240,7 +247,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
@@ -248,7 +255,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             IPAddress.objects.filter(address=IPNetwork("10.0.0.1/24")).count(), 2
         )
         self.assertEqual(
-            IPAddress.objects.filter(address=IPNetwork("fe80:dead:beef::1/64")).count(),
+            IPAddress.objects.filter(address=IPNetwork("2001:db8::1/64")).count(),
             2,
         )
         self.assertEqual(
@@ -257,7 +264,7 @@ class DNSsyncIPAddressTestCase(TestCase):
         )
         self.assertEqual(
             Record.objects.filter(
-                type=RecordTypeChoices.AAAA, value="fe80:dead:beef::1"
+                type=RecordTypeChoices.AAAA, value="2001:db8::1"
             ).count(),
             2,
         )
@@ -274,12 +281,12 @@ class DNSsyncIPAddressTestCase(TestCase):
             custom_field_data={"ipaddress_dns_record_ttl": 23},
         )
         IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
             custom_field_data={"ipaddress_dns_record_ttl": 42},
         )
         IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::2/64"),
+            address=IPNetwork("2001:db8::2/64"),
             dns_name="name2.zone1.example.com",
             custom_field_data={"ipaddress_dns_record_ttl": 23},
         )
@@ -317,7 +324,7 @@ class DNSsyncIPAddressTestCase(TestCase):
                 name="name2",
                 zone=self.zone,
                 type=RecordTypeChoices.AAAA,
-                value="fe80:dead:beef:1::1",
+                value="2001:db8:1::1",
                 ttl=43200,
             ),
         )
@@ -326,17 +333,58 @@ class DNSsyncIPAddressTestCase(TestCase):
 
         with self.assertRaises(ValidationError):
             IPAddress.objects.create(
-                address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
+                address=IPNetwork("10.0.0.1/24"),
+                dns_name="name1.zone1.example.com",
+                custom_field_data={"ipaddress_dns_record_ttl": 86400},
             )
         with self.assertRaises(ValidationError):
             IPAddress.objects.create(
-                address=IPNetwork("fe80:dead:beef::1/64"),
+                address=IPNetwork("2001:db8::1/64"),
                 dns_name="name2.zone1.example.com",
+                custom_field_data={"ipaddress_dns_record_ttl": 86400},
             )
 
         self.assertFalse(Record.objects.filter(type=RecordTypeChoices.A, managed=True))
         self.assertFalse(
             Record.objects.filter(type=RecordTypeChoices.AAAA, managed=True)
+        )
+
+    def test_create_ip_address_null_ttl_rrset_set_ttl(self):
+        records = (
+            Record(
+                name="name1",
+                zone=self.zone,
+                type=RecordTypeChoices.A,
+                value="10.0.1.1",
+                ttl=43200,
+            ),
+            Record(
+                name="name2",
+                zone=self.zone,
+                type=RecordTypeChoices.AAAA,
+                value="2001:db8:1::1",
+                ttl=43200,
+            ),
+        )
+        for record in records:
+            record.save()
+
+        IPAddress.objects.create(
+            address=IPNetwork("10.0.0.1/24"),
+            dns_name="name1.zone1.example.com",
+            custom_field_data={"ipaddress_dns_record_ttl": None},
+        )
+        IPAddress.objects.create(
+            address=IPNetwork("2001:db8::1/64"),
+            dns_name="name2.zone1.example.com",
+            custom_field_data={"ipaddress_dns_record_ttl": None},
+        )
+
+        self.assertEqual(
+            Record.objects.get(type=RecordTypeChoices.A, managed=True).ttl, 43200
+        )
+        self.assertEqual(
+            Record.objects.get(type=RecordTypeChoices.AAAA, managed=True).ttl, 43200
         )
 
     def test_create_ip_address_invalid_record(self):
@@ -357,7 +405,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             )
         with self.assertRaises(ValidationError):
             IPAddress.objects.create(
-                address=IPNetwork("fe80:dead:beef::1/64"),
+                address=IPNetwork("2001:db8::1/64"),
                 dns_name="name2.zone1.example.com",
             )
 
@@ -369,16 +417,13 @@ class DNSsyncIPAddressTestCase(TestCase):
         )
 
     def test_create_ip_address_disable_ptr(self):
-        Zone.objects.create(name="0.0.10.in-addr.arpa", **self.zone_data)
-        Zone.objects.create(name="f.e.e.b.d.a.e.d.0.8.e.f.ip6.arpa", **self.zone_data)
-
         ipv4_address = IPAddress.objects.create(
             address=IPNetwork("10.0.0.1/24"),
             dns_name="name1.zone1.example.com",
             custom_field_data={"ipaddress_dns_record_disable_ptr": True},
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
             custom_field_data={"ipaddress_dns_record_disable_ptr": True},
         )
@@ -410,7 +455,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             custom_field_data={"ipaddress_dns_record_ttl": 86400},
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
             custom_field_data={"ipaddress_dns_record_ttl": 86400},
         )
@@ -440,7 +485,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             custom_field_data={"ipaddress_dns_disabled": True},
         )
         IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
             custom_field_data={"ipaddress_dns_disabled": True},
         )
@@ -459,7 +504,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             status=IPAddressStatusChoices.STATUS_RESERVED,
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
             status=IPAddressStatusChoices.STATUS_RESERVED,
         )
@@ -483,7 +528,7 @@ class DNSsyncIPAddressTestCase(TestCase):
                 status=IPAddressStatusChoices.STATUS_RESERVED,
             )
             ipv6_address = IPAddress.objects.create(
-                address=IPNetwork("fe80:dead:beef::1/64"),
+                address=IPNetwork("2001:db8::1/64"),
                 dns_name="name2.zone1.example.com",
                 status=IPAddressStatusChoices.STATUS_RESERVED,
             )
@@ -507,7 +552,7 @@ class DNSsyncIPAddressTestCase(TestCase):
                 status=IPAddressStatusChoices.STATUS_DHCP,
             )
             ipv6_address = IPAddress.objects.create(
-                address=IPNetwork("fe80:dead:beef::1/64"),
+                address=IPNetwork("2001:db8::1/64"),
                 dns_name="name2.zone1.example.com",
                 status=IPAddressStatusChoices.STATUS_DHCP,
             )
@@ -523,7 +568,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
@@ -547,7 +592,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
@@ -557,7 +602,7 @@ class DNSsyncIPAddressTestCase(TestCase):
         ipv4_address.address = IPNetwork("10.0.0.2/24")
         ipv4_address.save()
 
-        ipv6_address.address = IPNetwork("fe80:dead:beef::2/64")
+        ipv6_address.address = IPNetwork("2001:db8::2/64")
         ipv6_address.save()
 
         record4 = Record.objects.get(ipam_ip_address=ipv4_address)
@@ -573,7 +618,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
@@ -607,7 +652,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
@@ -628,7 +673,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
@@ -653,7 +698,7 @@ class DNSsyncIPAddressTestCase(TestCase):
                 name="name4",
                 zone=self.zone,
                 type=RecordTypeChoices.AAAA,
-                value="fe80:dead:beef::1",
+                value="2001:db8::1",
             ),
         )
         for record in records:
@@ -663,7 +708,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
@@ -697,7 +742,7 @@ class DNSsyncIPAddressTestCase(TestCase):
                 name="name2",
                 zone=self.zone,
                 type=RecordTypeChoices.AAAA,
-                value="fe80:dead:beef::2",
+                value="2001:db8::2",
             ),
         )
         for record in records:
@@ -707,7 +752,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
@@ -718,7 +763,7 @@ class DNSsyncIPAddressTestCase(TestCase):
         with self.assertRaises(ValidationError):
             ipv4_address.save()
 
-        ipv6_address.address = IPNetwork("fe80:dead:beef::2/64")
+        ipv6_address.address = IPNetwork("2001:db8::2/64")
         with self.assertRaises(ValidationError):
             ipv6_address.save()
 
@@ -728,7 +773,7 @@ class DNSsyncIPAddressTestCase(TestCase):
         self.assertEqual(record4.value, str(ipv4_address.address.ip))
 
         ipv6_address.refresh_from_db()
-        self.assertEqual(ipv6_address.address, IPNetwork("fe80:dead:beef::1/64"))
+        self.assertEqual(ipv6_address.address, IPNetwork("2001:db8::1/64"))
         record6 = Record.objects.get(ipam_ip_address=ipv6_address)
         self.assertEqual(record6.value, str(ipv6_address.address.ip))
 
@@ -754,7 +799,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
@@ -780,33 +825,26 @@ class DNSsyncIPAddressTestCase(TestCase):
         self.assertEqual(record6.fqdn.rstrip("."), ipv6_address.dns_name)
 
     def test_update_ip_address_disable_ptr(self):
-        reverse4_zone = Zone.objects.create(
-            name="0.0.10.in-addr.arpa", **self.zone_data
-        )
-        reverse6_zone = Zone.objects.create(
-            name="f.e.e.b.d.a.e.d.0.8.e.f.ip6.arpa", **self.zone_data
-        )
-
         ipv4_address = IPAddress.objects.create(
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
         record4 = Record.objects.get(ipam_ip_address=ipv4_address)
-        self.assertTrue(
+        self.assertEqual(
             Record.objects.filter(
-                zone=reverse4_zone, type=RecordTypeChoices.PTR
+                zone=self.reverse4_zone, type=RecordTypeChoices.PTR
             ).first(),
             record4.ptr_record,
         )
 
         record6 = Record.objects.get(ipam_ip_address=ipv6_address)
-        self.assertTrue(
+        self.assertEqual(
             Record.objects.filter(
-                zone=reverse6_zone, type=RecordTypeChoices.PTR
+                zone=self.reverse6_zone, type=RecordTypeChoices.PTR
             ).first(),
             record6.ptr_record,
         )
@@ -823,7 +861,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
@@ -849,7 +887,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             dns_name="name1.zone1.example.com",
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
@@ -878,7 +916,7 @@ class DNSsyncIPAddressTestCase(TestCase):
             status=IPAddressStatusChoices.STATUS_RESERVED,
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
             status=IPAddressStatusChoices.STATUS_RESERVED,
         )
@@ -914,7 +952,7 @@ class DNSsyncIPAddressTestCase(TestCase):
                 status=IPAddressStatusChoices.STATUS_DEPRECATED,
             )
             ipv6_address = IPAddress.objects.create(
-                address=IPNetwork("fe80:dead:beef::1/64"),
+                address=IPNetwork("2001:db8::1/64"),
                 dns_name="name2.zone1.example.com",
                 status=IPAddressStatusChoices.STATUS_DEPRECATED,
             )
@@ -950,7 +988,7 @@ class DNSsyncIPAddressTestCase(TestCase):
                 status=IPAddressStatusChoices.STATUS_ACTIVE,
             )
             ipv6_address = IPAddress.objects.create(
-                address=IPNetwork("fe80:dead:beef::1/64"),
+                address=IPNetwork("2001:db8::1/64"),
                 dns_name="name2.zone1.example.com",
                 status=IPAddressStatusChoices.STATUS_ACTIVE,
             )
@@ -973,20 +1011,213 @@ class DNSsyncIPAddressTestCase(TestCase):
             record6.refresh_from_db()
             self.assertEqual(record6.status, RecordStatusChoices.STATUS_INACTIVE)
 
+    def test_update_ip_address_name_duplicate_record_deactivate_ptr_conflict(self):
+        test_settings = settings.PLUGINS_CONFIG["netbox_dns"].copy()
+        test_settings["dnssync_conflict_deactivate"] = True
+        test_settings["enforce_unique_records"] = True
+
+        with self.settings(PLUGINS_CONFIG={"netbox_dns": test_settings}):
+            records = (
+                Record(
+                    name="name3",
+                    zone=self.zone,
+                    type=RecordTypeChoices.A,
+                    value="10.0.0.1",
+                ),
+                Record(
+                    name="name4",
+                    zone=self.zone,
+                    type=RecordTypeChoices.AAAA,
+                    value="2001:db8::1",
+                ),
+            )
+            for record in records:
+                record.save()
+
+            ipv4_address = IPAddress.objects.create(
+                address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
+            )
+            ipv6_address = IPAddress.objects.create(
+                address=IPNetwork("2001:db8::1/64"),
+                dns_name="name2.zone1.example.com",
+            )
+
+            for record in records:
+                record.refresh_from_db()
+                self.assertEqual(record.status, RecordStatusChoices.STATUS_ACTIVE)
+                self.assertIsNotNone(record.ptr_record)
+                self.assertEqual(
+                    record.ptr_record.status, RecordStatusChoices.STATUS_ACTIVE
+                )
+            self.assertTrue(
+                Record.objects.filter(ipam_ip_address=ipv4_address).exists()
+            )
+            self.assertTrue(
+                Record.objects.filter(ipam_ip_address=ipv6_address).exists()
+            )
+
+            ipv4_address.dns_name = "name3.zone1.example.com"
+            ipv4_address.save()
+            ipv6_address.dns_name = "name4.zone1.example.com"
+            ipv6_address.save()
+
+            for record in records:
+                record.refresh_from_db()
+                self.assertEqual(record.status, RecordStatusChoices.STATUS_INACTIVE)
+            for ip_address in (ipv4_address, ipv6_address):
+                for address_record in ip_address.netbox_dns_records.all():
+                    self.assertEqual(
+                        address_record.status, RecordStatusChoices.STATUS_ACTIVE
+                    )
+                    self.assertEqual(
+                        address_record.ptr_record.status,
+                        RecordStatusChoices.STATUS_ACTIVE,
+                    )
+                    self.assertEqual(
+                        address_record.ptr_record.value, f"{ip_address.dns_name}."
+                    )
+
     def test_delete_ip_address(self):
         ipv4_address = IPAddress.objects.create(
             address=IPNetwork("10.0.0.1/24"), dns_name="name1.zone1.example.com"
         )
         ipv6_address = IPAddress.objects.create(
-            address=IPNetwork("fe80:dead:beef::1/64"),
+            address=IPNetwork("2001:db8::1/64"),
             dns_name="name2.zone1.example.com",
         )
 
         self.assertTrue(Record.objects.filter(ipam_ip_address=ipv4_address).exists())
         self.assertTrue(Record.objects.filter(ipam_ip_address=ipv6_address).exists())
+        self.assertTrue(
+            Record.objects.filter(
+                type=RecordTypeChoices.PTR, value="name1.zone1.example.com."
+            ).exists()
+        )
+        self.assertTrue(
+            Record.objects.filter(
+                type=RecordTypeChoices.PTR, value="name2.zone1.example.com."
+            ).exists()
+        )
 
         ipv4_address.delete()
         ipv6_address.delete()
 
         self.assertFalse(Record.objects.filter(type=RecordTypeChoices.A).exists())
         self.assertFalse(Record.objects.filter(type=RecordTypeChoices.AAAA).exists())
+        self.assertFalse(
+            Record.objects.filter(
+                type=RecordTypeChoices.PTR, value="name1.zone1.example.com."
+            ).exists()
+        )
+        self.assertFalse(
+            Record.objects.filter(
+                type=RecordTypeChoices.PTR, value="name2.zone1.example.com."
+            ).exists()
+        )
+
+    def test_modify_ip_address_match_filter(self):
+        self.view.ip_address_filter = {"dns_name__startswith": "name2."}
+        self.view.save()
+
+        ip_address = IPAddress.objects.create(
+            address=IPNetwork("2001:db8::1/64"),
+            dns_name="name1.zone1.example.com",
+        )
+
+        self.assertFalse(Record.objects.filter(ipam_ip_address=ip_address).exists())
+
+        ip_address.dns_name = "name2.zone1.example.com"
+        ip_address.save()
+
+        self.assertTrue(Record.objects.filter(ipam_ip_address=ip_address).exists())
+
+    def test_modify_ip_address_not_match_filter(self):
+        self.view.ip_address_filter = {"dns_name__startswith": "name1."}
+        self.view.save()
+
+        ip_address = IPAddress.objects.create(
+            address=IPNetwork("2001:db8::1/64"),
+            dns_name="name1.zone1.example.com",
+        )
+
+        self.assertTrue(Record.objects.filter(ipam_ip_address=ip_address).exists())
+
+        ip_address.dns_name = "name2.zone1.example.com"
+        ip_address.save()
+
+        self.assertFalse(Record.objects.filter(ipam_ip_address=ip_address).exists())
+
+    def test_modify_ip_address_cf_match_filter(self):
+        cf = CustomField.objects.create(
+            name="ipaddress_dns",
+            type=CustomFieldTypeChoices.TYPE_BOOLEAN,
+            default=False,
+            required=False,
+        )
+        cf.object_types.set([ObjectType.objects.get_for_model(IPAddress)])
+
+        self.view.ip_address_filter = {"custom_field_data__ipaddress_dns": True}
+        self.view.save()
+
+        ip_address = IPAddress.objects.create(
+            address=IPNetwork("2001:db8::1/64"),
+            dns_name="name1.zone1.example.com",
+            custom_field_data={"ipaddress_dns": False},
+        )
+
+        self.assertFalse(Record.objects.filter(ipam_ip_address=ip_address).exists())
+
+        ip_address.custom_field_data = {"ipaddress_dns": True}
+        ip_address.save()
+
+        self.assertTrue(Record.objects.filter(ipam_ip_address=ip_address).exists())
+
+    def test_modify_ip_address_cf_not_match_filter(self):
+        cf = CustomField.objects.create(
+            name="ipaddress_dns",
+            type=CustomFieldTypeChoices.TYPE_BOOLEAN,
+            default=False,
+            required=False,
+        )
+        cf.object_types.set([ObjectType.objects.get_for_model(IPAddress)])
+
+        self.view.ip_address_filter = {"custom_field_data__ipaddress_dns": True}
+        self.view.save()
+
+        ip_address = IPAddress.objects.create(
+            address=IPNetwork("2001:db8::1/64"),
+            dns_name="name1.zone1.example.com",
+            custom_field_data={"ipaddress_dns": True},
+        )
+
+        self.assertTrue(Record.objects.filter(ipam_ip_address=ip_address).exists())
+
+        ip_address.custom_field_data = {"ipaddress_dns": False}
+        ip_address.save()
+
+        self.assertFalse(Record.objects.filter(ipam_ip_address=ip_address).exists())
+
+    def test_ip_address_with_cidr_string(self):
+        # +
+        # This is a very specific test for a strange condition that occurred when
+        # using the Slurp'it plugin (see ).
+        #
+        # Essentially, a string was stored in the address field of an IPAddress
+        # object, which is perfectly legal, and then save() is called on that
+        # object. Saving converts the string to an IPNetwork object, which is
+        # used in a comparison to the ip_address field in records.
+        #
+        # Since the IP address as a string couldn't be compared to the ip_address
+        # field, which is of the AddressField type, this led to an exception.
+        #
+        # The result of the filter() operation does not matter, it just needs to
+        # succeed without throwing an exception.
+        # -
+        ip_address = IPAddress.objects.create(
+            address="2001:db8::1/64",
+            dns_name="name1.zone1.example.com",
+            custom_field_data={"ipaddress_dns": True},
+        )
+        ip_address.save()
+
+        Record.objects.filter(ip_address=ip_address.address)

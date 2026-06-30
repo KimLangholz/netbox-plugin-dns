@@ -1,25 +1,16 @@
 import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
-from netbox.tables import NetBoxTable, TagColumn
-
+from netbox.tables import PrimaryModelTable, TagColumn
 from netbox_dns.models import RegistrationContact
-
 
 __all__ = ("RegistrationContactTable",)
 
 
-class RegistrationContactTable(NetBoxTable):
-    contact_id = tables.Column(
-        verbose_name=_("Contact ID"),
-        linkify=True,
-    )
-    tags = TagColumn(
-        url_name="plugins:netbox_dns:registrationcontact_list",
-    )
-
-    class Meta(NetBoxTable.Meta):
+class RegistrationContactTable(PrimaryModelTable):
+    class Meta(PrimaryModelTable.Meta):
         model = RegistrationContact
+
         fields = (
             "name",
             "description",
@@ -35,4 +26,17 @@ class RegistrationContactTable(NetBoxTable):
             "fax_ext",
             "email",
         )
-        default_columns = ("contact_id", "name", "email")
+
+        default_columns = (
+            "contact_id",
+            "name",
+            "email",
+        )
+
+    contact_id = tables.Column(
+        verbose_name=_("Contact ID"),
+        linkify=True,
+    )
+    tags = TagColumn(
+        url_name="plugins:netbox_dns:registrationcontact_list",
+    )

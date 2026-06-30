@@ -1,14 +1,13 @@
 from rest_framework import status
 
-from utilities.testing import post_data
-
-from netbox_dns.tests.custom import ModelViewTestCase
+from netbox_dns.choices import ZoneStatusChoices
 from netbox_dns.models import (
+    NameServer,
     View,
     Zone,
-    NameServer,
 )
-from netbox_dns.choices import ZoneStatusChoices
+from netbox_dns.tests.custom import ModelViewTestCase
+from utilities.testing import post_data
 
 
 class ZonePrefixNotationTestCase(ModelViewTestCase):

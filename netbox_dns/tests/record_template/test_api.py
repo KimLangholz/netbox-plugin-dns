@@ -1,8 +1,11 @@
-from utilities.testing import APIViewTestCases, create_tags
-
-from netbox_dns.tests.custom import APITestCase, NetBoxDNSGraphQLMixin
-from netbox_dns.models import RecordTemplate
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import RecordTemplate
+from netbox_dns.tests.custom import (
+    APITestCase,
+    CustomFieldTargetAPIMixin,
+    NetBoxDNSGraphQLMixin,
+)
+from utilities.testing import APIViewTestCases, create_tags
 
 
 class RecordTemplateAPITestCase(
@@ -13,6 +16,7 @@ class RecordTemplateAPITestCase(
     APIViewTestCases.UpdateObjectViewTestCase,
     APIViewTestCases.DeleteObjectViewTestCase,
     NetBoxDNSGraphQLMixin,
+    CustomFieldTargetAPIMixin,
     APIViewTestCases.GraphQLTestCase,
 ):
     model = RecordTemplate

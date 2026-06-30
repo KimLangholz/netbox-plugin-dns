@@ -1,54 +1,58 @@
 import re
+from datetime import date, datetime
 from math import ceil
-from datetime import datetime
 
+from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.validators import (
+    MaxValueValidator,
+    MinValueValidator,
+)
+from django.db import models, transaction
+from django.db.models import BooleanField, ExpressionWrapper, Max, Q, UniqueConstraint
+from django.db.models.functions import Length, Lower
+from django.db.models.signals import m2m_changed
+from django.dispatch import receiver
+from django.utils.translation import gettext_lazy as _
 from dns import name as dns_name
 from dns.exception import DNSException
 from dns.rdtypes.ANY import SOA
-from django.core.validators import (
-    MinValueValidator,
-    MaxValueValidator,
-)
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from django.db import models, transaction
-from django.db.models import Q, Max, ExpressionWrapper, BooleanField, UniqueConstraint
-from django.db.models.functions import Length, Lower
-from django.db.models.signals import m2m_changed
-from django.urls import reverse
-from django.dispatch import receiver
-from django.conf import settings
-from django.utils.translation import gettext_lazy as _
 
-from netbox.models import NetBoxModel
-from netbox.models.features import ContactsMixin
-from netbox.search import SearchIndex, register_search
-from netbox.plugins.utils import get_plugin_config
-from utilities.querysets import RestrictedQuerySet
+from ipam.choices import IPAddressFamilyChoices
 from ipam.models import IPAddress
-
-from netbox_dns.choices import RecordClassChoices, RecordTypeChoices, ZoneStatusChoices
+from netbox.models import PrimaryModel
+from netbox.models.features import ContactsMixin
+from netbox.plugins.utils import get_plugin_config
+from netbox.search import SearchIndex, register_search
+from netbox_dns.choices import (
+    RecordClassChoices,
+    RecordTypeChoices,
+    ZoneEPPStatusChoices,
+    ZoneStatusChoices,
+)
 from netbox_dns.fields import NetworkField, RFC2317NetworkField
+from netbox_dns.mixins import ObjectModificationMixin
 from netbox_dns.utilities import (
-    update_dns_records,
+    NameFormatError,
+    arpa_to_prefix,
     check_dns_records,
     get_ip_addresses_by_zone,
-    arpa_to_prefix,
+    get_parent_zone_names,
     name_to_unicode,
     normalize_name,
-    get_parent_zone_names,
     regex_from_list,
-    NameFormatError,
+    update_dns_records,
 )
 from netbox_dns.validators import (
-    validate_rname,
     validate_domain_name,
+    validate_rname,
 )
-from netbox_dns.mixins import ObjectModificationMixin
+from utilities.querysets import RestrictedQuerySet
 
+from .nameserver import NameServer
 from .record import Record
 from .view import View
-from .nameserver import NameServer
-
 
 __all__ = (
     "Zone",
@@ -76,7 +80,90 @@ class ZoneManager(models.Manager.from_queryset(RestrictedQuerySet)):
         )
 
 
-class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
+class Zone(ObjectModificationMixin, ContactsMixin, PrimaryModel):
+    class Meta:
+        verbose_name = _("Zone")
+        verbose_name_plural = _("Zones")
+
+        ordering = (
+            "view",
+            "name",
+        )
+
+        constraints = (
+            UniqueConstraint(
+                Lower("name"),
+                "view",
+                name="name_view_unique_ci",
+                violation_error_message=_(
+                    "There is already a zone with the same name in this view"
+                ),
+            ),
+        )
+
+        indexes = (
+            models.Index(fields=["name"], name="netbox_dns_zone_name"),
+            models.Index(
+                fields=["rfc2317_prefix"], name="netbox_dns_zone_rfc2317_prefix"
+            ),
+            models.Index(fields=["arpa_network"], name="netbox_dns_zone_arpa_network"),
+        )
+
+    clone_fields = (
+        "view",
+        "name",
+        "description",
+        "status",
+        "nameservers",
+        "default_ttl",
+        "soa_ttl",
+        "soa_mname",
+        "soa_rname",
+        "soa_refresh",
+        "soa_retry",
+        "soa_expire",
+        "soa_minimum",
+        "tenant",
+    )
+
+    soa_clean_fields = {
+        "description",
+        "status",
+        "dnssec_policy",
+        "parental_agents",
+        "registrar",
+        "registry_domain_id",
+        "expiration_date",
+        "domain_status",
+        "registrant",
+        "admin_c",
+        "tech_c",
+        "billing_c",
+        "rfc2317_parent_managed",
+        "tenant",
+        "comments",
+        "owner",
+    }
+
+    objects = ZoneManager()
+
+    def __str__(self):
+        if self.name == "." and get_plugin_config("netbox_dns", "enable_root_zones"):
+            name = ". (root zone)"
+        else:
+            try:
+                name = dns_name.from_text(self.name, origin=None).to_unicode()
+            except DNSException:
+                name = self.name
+
+        try:
+            if not self.view.default_view:
+                return f"[{self.view}] {name}"
+        except ObjectDoesNotExist:
+            return f"[<no view assigned>] {name}"
+
+        return str(name)
+
     def __init__(self, *args, **kwargs):
         kwargs.pop("template", None)
 
@@ -113,13 +200,13 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
     default_ttl = models.PositiveIntegerField(
         verbose_name=_("Default TTL"),
         blank=True,
-        validators=[MinValueValidator(1)],
+        validators=[MaxValueValidator(2147483647)],
     )
     soa_ttl = models.PositiveIntegerField(
         verbose_name=_("SOA TTL"),
         blank=False,
         null=False,
-        validators=[MinValueValidator(1)],
+        validators=[MaxValueValidator(2147483647)],
     )
     soa_mname = models.ForeignKey(
         verbose_name=_("SOA MName"),
@@ -163,31 +250,28 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         verbose_name=_("SOA Minimum TTL"),
         blank=False,
         null=False,
-        validators=[MinValueValidator(1)],
+        validators=[MaxValueValidator(2147483647)],
     )
     soa_serial_auto = models.BooleanField(
         verbose_name=_("Generate SOA Serial"),
         help_text=_("Automatically generate the SOA serial number"),
         default=True,
     )
-    description = models.CharField(
-        verbose_name=_("Description"),
-        max_length=200,
-        blank=True,
-    )
-    arpa_network = NetworkField(
-        verbose_name=_("ARPA Network"),
-        help_text=_("Network related to a reverse lookup zone (.arpa)"),
-        blank=True,
-        null=True,
-    )
-    tenant = models.ForeignKey(
-        verbose_name=_("Tenant"),
-        to="tenancy.Tenant",
+    dnssec_policy = models.ForeignKey(
+        verbose_name=_("DNSSEC Policy"),
+        to="DNSSECPolicy",
         on_delete=models.PROTECT,
-        related_name="netbox_dns_zones",
+        related_name="zones",
         blank=True,
         null=True,
+    )
+    parental_agents = ArrayField(
+        base_field=models.GenericIPAddressField(
+            protocol="both",
+        ),
+        blank=True,
+        null=True,
+        default=list,
     )
     registrar = models.ForeignKey(
         verbose_name=_("Registrar"),
@@ -203,6 +287,18 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         blank=True,
         null=True,
     )
+    expiration_date = models.DateField(
+        verbose_name=_("Expiration Date"),
+        blank=True,
+        null=True,
+    )
+    domain_status = models.CharField(
+        verbose_name=_("Domain Status"),
+        max_length=50,
+        choices=ZoneEPPStatusChoices,
+        blank=True,
+        null=True,
+    )
     registrant = models.ForeignKey(
         verbose_name=_("Registrant"),
         to="RegistrationContact",
@@ -212,7 +308,7 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         null=True,
     )
     admin_c = models.ForeignKey(
-        verbose_name="Administrative Contact",
+        verbose_name=_("Administrative Contact"),
         to="RegistrationContact",
         on_delete=models.SET_NULL,
         related_name="admin_c_zones",
@@ -255,61 +351,20 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         blank=True,
         null=True,
     )
-
-    objects = ZoneManager()
-
-    clone_fields = (
-        "view",
-        "name",
-        "status",
-        "nameservers",
-        "default_ttl",
-        "soa_ttl",
-        "soa_mname",
-        "soa_rname",
-        "soa_refresh",
-        "soa_retry",
-        "soa_expire",
-        "soa_minimum",
-        "description",
-        "tenant",
+    arpa_network = NetworkField(
+        verbose_name=_("ARPA Network"),
+        help_text=_("Network related to a reverse lookup zone (.arpa)"),
+        blank=True,
+        null=True,
     )
-
-    class Meta:
-        verbose_name = _("Zone")
-        verbose_name_plural = _("Zones")
-
-        ordering = (
-            "view",
-            "name",
-        )
-        constraints = [
-            UniqueConstraint(
-                Lower("name"),
-                "view",
-                name="name_view_unique_ci",
-                violation_error_message=_(
-                    "There is already a zone with the same name in this view"
-                ),
-            ),
-        ]
-
-    def __str__(self):
-        if self.name == "." and get_plugin_config("netbox_dns", "enable_root_zones"):
-            name = ". (root zone)"
-        else:
-            try:
-                name = dns_name.from_text(self.name, origin=None).to_unicode()
-            except DNSException:
-                name = self.name
-
-        try:
-            if not self.view.default_view:
-                return f"[{self.view}] {name}"
-        except ObjectDoesNotExist:
-            return f"[<no view assigned>] {name}"
-
-        return str(name)
+    tenant = models.ForeignKey(
+        verbose_name=_("Tenant"),
+        to="tenancy.Tenant",
+        on_delete=models.PROTECT,
+        related_name="netbox_dns_zones",
+        blank=True,
+        null=True,
+    )
 
     @property
     def fqdn(self):
@@ -357,9 +412,8 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
     def get_status_color(self):
         return ZoneStatusChoices.colors.get(self.status)
 
-    # TODO: Remove in version 1.3.0 (NetBox #18555)
-    def get_absolute_url(self):
-        return reverse("plugins:netbox_dns:zone", kwargs={"pk": self.pk})
+    def get_domain_status_color(self):
+        return ZoneEPPStatusChoices.colors.get(self.domain_status)
 
     def get_status_class(self):
         return self.CSS_CLASSES.get(self.status)
@@ -375,6 +429,13 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
     @property
     def is_rfc2317_zone(self):
         return self.rfc2317_prefix is not None
+
+    @property
+    def inline_signing(self):
+        if self.dnssec_policy is None:
+            return None
+
+        return self.dnssec_policy.inline_signing
 
     def get_rfc2317_parent_zone(self):
         if not self.is_rfc2317_zone:
@@ -397,6 +458,8 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
                 self.admin_c,
                 self.tech_c,
                 self.billing_c,
+                self.expiration_date,
+                self.domain_status,
             )
         )
 
@@ -492,7 +555,12 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         try:
             soa_record = self.records.get(type=RecordTypeChoices.SOA, name=soa_name)
 
-            if soa_record.ttl != soa_ttl or soa_record.value != soa_rdata.to_text():
+            if (
+                soa_record.ttl != soa_ttl
+                or soa_record.value != soa_rdata.to_text()
+                or not soa_record.managed
+            ):
+                soa_record.snapshot()
                 soa_record.ttl = soa_ttl
                 soa_record.value = soa_rdata.to_text()
                 soa_record.managed = True
@@ -507,6 +575,8 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
                 value=soa_rdata.to_text(),
                 managed=True,
             )
+
+    update_soa_record.alters_data = True
 
     def update_ns_records(self):
         ns_name = "@"
@@ -527,6 +597,34 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
                 managed=True,
             )
 
+    update_ns_records.alters_data = True
+
+    def _check_nameserver_address_records(self, nameserver):
+        name = dns_name.from_text(nameserver.name, origin=None)
+        parent = name.parent()
+
+        if len(parent) < 2:
+            return None
+
+        try:
+            ns_zone = Zone.objects.get(view_id=self.view.pk, name=parent.to_text())
+        except ObjectDoesNotExist:
+            return None
+
+        relative_name = name.relativize(parent).to_text()
+        address_records = ns_zone.records.filter(
+            Q(status__in=RECORD_ACTIVE_STATUS_LIST),
+            Q(Q(name=f"{nameserver.name}.") | Q(name=relative_name)),
+            Q(Q(type=RecordTypeChoices.A) | Q(type=RecordTypeChoices.AAAA)),
+        )
+
+        if not address_records.exists():
+            return _(
+                "Nameserver {ns} does not have an active address record in zone {zone}"
+            ).format(ns=nameserver.name, zone=ns_zone)
+
+        return None
+
     def check_nameservers(self):
         nameservers = self.nameservers.all()
 
@@ -539,32 +637,31 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
             )
 
         for _nameserver in nameservers:
-            name = dns_name.from_text(_nameserver.name, origin=None)
-            parent = name.parent()
-
-            if len(parent) < 2:
-                continue
-
-            try:
-                ns_zone = Zone.objects.get(view_id=self.view.pk, name=parent.to_text())
-            except ObjectDoesNotExist:
-                continue
-
-            relative_name = name.relativize(parent).to_text()
-            address_records = ns_zone.records.filter(
-                Q(status__in=RECORD_ACTIVE_STATUS_LIST),
-                Q(Q(name=f"{_nameserver.name}.") | Q(name=relative_name)),
-                Q(Q(type=RecordTypeChoices.A) | Q(type=RecordTypeChoices.AAAA)),
-            )
-
-            if not address_records:
-                ns_warnings.append(
-                    _(
-                        "Nameserver {nameserver} does not have an active address record in zone {zone}"
-                    ).format(nameserver=_nameserver.name, zone=ns_zone)
-                )
+            warning = self._check_nameserver_address_records(_nameserver)
+            if warning is not None:
+                ns_warnings.append(warning)
 
         return ns_warnings, ns_errors
+
+    def check_expiration(self):
+        if self.expiration_date is None:
+            return None, None
+
+        expiration_warning = None
+        expiration_error = None
+
+        expiration_warning_days = get_plugin_config(
+            "netbox_dns", "zone_expiration_warning_days"
+        )
+
+        if self.expiration_date < date.today():
+            expiration_error = _("The registration for this domain has expired.")
+        elif (self.expiration_date - date.today()).days < expiration_warning_days:
+            expiration_warning = _(
+                f"The registration for this domain will expire in less than {expiration_warning_days} days."
+            )
+
+        return expiration_warning, expiration_error
 
     def check_soa_serial_increment(self, old_serial, new_serial):
         MAX_SOA_SERIAL_INCREMENT = 2**31 - 1
@@ -604,6 +701,7 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         if not self.soa_serial_auto:
             return
 
+        self.snapshot()
         self.last_updated = datetime.now()
         self.soa_serial = ceil(datetime.now().timestamp())
 
@@ -614,10 +712,14 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         else:
             self.soa_serial_dirty = True
 
+    update_serial.alters_data = True
+
     def save_soa_serial(self):
         if self.soa_serial_auto and self.soa_serial_dirty:
             super().save(update_fields=["soa_serial", "last_updated"])
             self.soa_serial_dirty = False
+
+    save_soa_serial.alters_data = True
 
     @property
     def network_from_name(self):
@@ -710,7 +812,19 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
 
         super().clean_fields(exclude=exclude)
 
+    clean_fields.alters_data = True
+
     def clean(self, *args, **kwargs):
+        if not self.dnssec_policy:
+            self.parental_agents = self._meta.get_field("parental_agents").get_default()
+
+        if not self.registrar:
+            self.registry_domain_id = self._meta.get_field(
+                "registry_domain_id"
+            ).get_default()
+            self.expiration_date = self._meta.get_field("expiration_date").get_default()
+            self.domain_status = self._meta.get_field("domain_status").get_default()
+
         if self.soa_ttl is None:
             self.soa_ttl = self.default_ttl
 
@@ -805,6 +919,8 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
 
         if self.is_reverse_zone:
             self.arpa_network = self.network_from_name
+        else:
+            self.arpa_network = None
 
         if self.is_rfc2317_zone:
             if self.arpa_network is not None:
@@ -852,12 +968,16 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
 
         super().clean(*args, **kwargs)
 
+    clean.alters_data = True
+
     def save(self, *args, **kwargs):
         self.full_clean()
 
         changed_fields = self.changed_fields
 
-        if self.soa_serial_auto:
+        if self.soa_serial_auto and (
+            changed_fields is None or changed_fields - self.soa_clean_fields
+        ):
             self.soa_serial = self.get_auto_serial()
 
         super().save(*args, **kwargs)
@@ -868,9 +988,21 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
             zones = self.view.zones.filter(
                 arpa_network__net_contains_or_equals=self.arpa_network
             )
+
+            if self.arpa_network.version == IPAddressFamilyChoices.FAMILY_4:
+                record_type = RecordTypeChoices.A
+            else:
+                record_type = RecordTypeChoices.AAAA
+
             address_records = Record.objects.filter(
-                Q(ptr_record__isnull=True) | Q(ptr_record__zone__in=zones),
-                type__in=(RecordTypeChoices.A, RecordTypeChoices.AAAA),
+                Q(
+                    ptr_record__isnull=True,
+                    zone__view=self.view,
+                    ip_address__isnull=False,
+                    ip_address__contained=self.arpa_network,
+                    type=record_type,
+                )
+                | Q(ptr_record__zone__in=zones),
                 disable_ptr=False,
             )
 
@@ -899,7 +1031,7 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
                 arpa_network__net_contains=self.rfc2317_prefix
             )
             address_records = Record.objects.filter(
-                Q(ptr_record__isnull=True)
+                Q(ptr_record__isnull=True, ip_address__contained=self.rfc2317_prefix)
                 | Q(ptr_record__zone__in=zones)
                 | Q(ptr_record__zone=self),
                 type=RecordTypeChoices.A,
@@ -945,6 +1077,14 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
             for ip_address in ip_addresses.distinct():
                 update_dns_records(ip_address)
 
+        if (
+            self.rfc2317_prefix is not None
+            and changed_fields is not None
+            and "rfc2317_prefix" in changed_fields
+        ):
+            for zone in self.rfc2317_child_zones.all():
+                zone.update_rfc2317_parent_zone()
+
         self.save_soa_serial()
         self.update_soa_record()
 
@@ -956,7 +1096,7 @@ class Zone(ObjectModificationMixin, ContactsMixin, NetBoxModel):
             for address_record in address_records:
                 address_record.ptr_record.delete()
 
-            ptr_records = self.records.filter(address_record__isnull=False)
+            ptr_records = self.records.filter(address_records__isnull=False)
             update_records = list(
                 Record.objects.filter(ptr_record__in=ptr_records).values_list(
                     "pk", flat=True
@@ -1029,6 +1169,7 @@ def update_ns_records(**kwargs):
 @register_search
 class ZoneIndex(SearchIndex):
     model = Zone
+
     fields = (
         ("name", 100),
         ("view", 150),

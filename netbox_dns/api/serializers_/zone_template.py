@@ -1,21 +1,58 @@
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
-from netbox.api.serializers import NetBoxModelSerializer
+from netbox.api.serializers import PrimaryModelSerializer
+from netbox_dns.api.nested_serializers import NestedRecordTemplateSerializer
+from netbox_dns.models import ZoneTemplate
 from tenancy.api.serializers_.tenants import TenantSerializer
 
-from netbox_dns.models import ZoneTemplate
-from netbox_dns.api.nested_serializers import NestedRecordTemplateSerializer
-
+from .dnssec_policy import DNSSECPolicySerializer
 from .nameserver import NameServerSerializer
 from .registrar import RegistrarSerializer
 from .registration_contact import RegistrationContactSerializer
 
-
 __all__ = ("ZoneTemplateSerializer",)
 
 
-class ZoneTemplateSerializer(NetBoxModelSerializer):
+class ZoneTemplateSerializer(PrimaryModelSerializer):
+    class Meta:
+        model = ZoneTemplate
+
+        fields = (
+            "id",
+            "url",
+            "name",
+            "description",
+            "comments",
+            "tags",
+            "display",
+            "display_url",
+            "nameservers",
+            "soa_mname",
+            "soa_rname",
+            "dnssec_policy",
+            "parental_agents",
+            "registrar",
+            "registrant",
+            "tech_c",
+            "admin_c",
+            "billing_c",
+            "active",
+            "created",
+            "last_updated",
+            "custom_fields",
+            "tenant",
+            "record_templates",
+        )
+
+        brief_fields = (
+            "id",
+            "url",
+            "name",
+            "display",
+            "description",
+        )
+
     url = serializers.HyperlinkedIdentityField(
         view_name="plugins-api:netbox_dns-api:zonetemplate-detail"
     )
@@ -38,6 +75,13 @@ class ZoneTemplateSerializer(NetBoxModelSerializer):
         read_only=False,
         required=False,
         help_text=_("Record templates assigned to the zone template"),
+    )
+    dnssec_policy = DNSSECPolicySerializer(
+        nested=True,
+        many=False,
+        read_only=False,
+        required=False,
+        help_text=_("DNSSEC policy assigned to the zone template"),
     )
     registrar = RegistrarSerializer(
         nested=True,
@@ -79,7 +123,11 @@ class ZoneTemplateSerializer(NetBoxModelSerializer):
         read_only=True,
         allow_null=True,
     )
-    tenant = TenantSerializer(nested=True, required=False, allow_null=True)
+    tenant = TenantSerializer(
+        nested=True,
+        required=False,
+        allow_null=True,
+    )
 
     def create(self, validated_data):
         nameservers = validated_data.pop("nameservers", None)
@@ -106,35 +154,3 @@ class ZoneTemplateSerializer(NetBoxModelSerializer):
             zone_template.record_templates.set(record_templates)
 
         return zone_template
-
-    class Meta:
-        model = ZoneTemplate
-        fields = (
-            "id",
-            "url",
-            "name",
-            "display",
-            "nameservers",
-            "soa_mname",
-            "soa_rname",
-            "description",
-            "tags",
-            "created",
-            "last_updated",
-            "registrar",
-            "registrant",
-            "tech_c",
-            "admin_c",
-            "billing_c",
-            "active",
-            "custom_fields",
-            "tenant",
-            "record_templates",
-        )
-        brief_fields = (
-            "id",
-            "url",
-            "name",
-            "display",
-            "description",
-        )

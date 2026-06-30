@@ -1,18 +1,17 @@
 import re
 import textwrap
 
-from dns import rdata, name as dns_name
-from dns.exception import SyntaxError
-
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
+from dns import name as dns_name
+from dns import rdata
+from dns.exception import SyntaxError
 
 from netbox.plugins.utils import get_plugin_config
-
 from netbox_dns.choices import RecordClassChoices, RecordTypeChoices
 from netbox_dns.validators import (
-    validate_fqdn,
     validate_domain_name,
+    validate_fqdn,
     validate_generic_name,
 )
 
@@ -27,7 +26,7 @@ def validate_record_value(record):
             name.to_unicode()
         except dns_name.IDNAException as exc:
             raise ValidationError(
-                "{name} is not a valid IDN: {error}.".format(
+                _("{name} is not a valid IDN: {error}.").format(
                     name=name.to_text(), error=exc
                 )
             )
@@ -51,6 +50,9 @@ def validate_record_value(record):
             f'"{part}"'
             for part in textwrap.wrap(raw_value, MAX_TXT_LENGTH, drop_whitespace=False)
         )
+
+    if record.type in (RecordTypeChoices.CUSTOM_TYPES):
+        return
 
     if record.type in (RecordTypeChoices.TXT, RecordTypeChoices.SPF):
         if not (record.value.isascii() and record.value.isprintable()):

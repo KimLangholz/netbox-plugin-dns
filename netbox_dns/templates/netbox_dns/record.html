@@ -6,6 +6,13 @@
 {% load i18n %}
 
 {% block control-buttons %}
+{% if perms.netbox_dns.add_record and object.type != "CNAME" %}
+<a href="{% url 'plugins:netbox_dns:record_add' %}?view={{ object.zone.view.pk }}&zone={{ object.zone.pk }}&value={{ object.fqdn }}&type=CNAME&return_url={{ object.get_absolute_url }}">
+    <button type="submit" class="btn btn-primary" name="add-record">
+        <i class="mdi mdi-plus-thick" aria-hidden="true"></i>{% trans "Add CNAME" %}
+    </button>
+</a>
+{% endif %}
 {% if object.managed %}
 {% else %}
 {{ block.super }}
@@ -32,11 +39,11 @@
 {% block content %}
 <div class="row">
     {% if object.managed %}
-    <div class="col col-md-12">
+        <div class="col col-md-12">
     {% else %}
-    <div class="col col-md-8">
+        <div class="col col-md-8">
     {% endif %}
-        <div class="card">
+    <div class="card">
             <h5 class="card-header">{% trans "Record" %}</h5>
             <table class="table table-hover attr-table">
                 <tr>
@@ -110,28 +117,36 @@
                     <td>{% checkmark object.disable_ptr %}</td>
                 </tr>
                 {% endif %}
+                {% if object.expiration_date %}
+                    <tr>
+                        <th scope="row">{% trans "Expiration Date" %}</th>
+                        <td>{{ object.expiration_date|isodate }}</td>
+                    </tr>
+                {% endif %}
                 {% if object.ptr_record %}
                 <tr>
                     <th scope="row">{% trans "PTR Record" %}</th>
                     <td>{{ object.ptr_record|linkify }}</td>
                 </tr>
                 {% endif %}
-                {% if object.address_record %}
+                {% if object.address_records.exists %}
                 <tr>
-                    <th scope="row">{% trans "Address Record" %}</th>
-                    <td>{{ object.address_record|linkify }}</td>
-                </tr>
-                {% if object.address_record.ipam_ip_address %}
-                <tr>
-                    <th scope="row">{% trans "IPAM IP Address" %}</th>
-                    <td>{{ object.address_record.ipam_ip_address|linkify }}</td>
+                    <th scope="row">{% trans "Address Records" %}</th>
+                    <td>
+                        <table>
+                            {% for address_record in object.address_records.all %}
+                            <tr>
+                                <td>{{ address_record|linkify:"name" }}.{{ address_record.zone|linkify:"name" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                    </td>
                 </tr>
                 {% endif %}
-                {% endif %}
-                {% if object.ipam_ip_address %}
+                {% if ipam_ip_address %}
                 <tr>
                     <th scope="row">{% trans "IPAM IP Address" %}</th>
-                    <td>{{ object.ipam_ip_address|linkify }}</td>
+                    <td>{{ ipam_ip_address|linkify }}</td>
                 </tr>
                 {% endif %}
                 <tr>
@@ -140,38 +155,57 @@
                 </tr>
             </table>
         </div>
-        {% if cname_target_table %}
-            <div class="card">
-                {% if cname_target_table.rows|length == 1 %}
-                    <h2 class="card-header">{% trans "CNAME Target" %}</h2>
-                {% else %}
-                    <h2 class="card-header">{% trans "CNAME Targets" %}</h2>
-                {% endif %}
-                <div class="table-responsive">
-                    {% render_table cname_target_table 'inc/table.html' %}
-                </div>
+    {% if rrset_record_table %}
+        <div class="card">
+            {% if rrset_record_table.rows|length == 1 %}
+                <h5 class="card-header">{% trans "Other Record in the RRSET" %}</h5>
+            {% else %}
+                <h5 class="card-header">{% trans "Other Records in the RRSET" %}</h5>
+            {% endif %}
+            <div class="table-responsive">
+                {% render_table rrset_record_table 'inc/table.html' %}
             </div>
-        {% elif cname_table %}
-            <div class="card">
-                {% if cname_table.rows|length == 1 %}
-                    <h2 class="card-header">{% trans "CNAME" %}</h2>
-                {% else %}
-                    <h2 class="card-header">{% trans "CNAMEs" %}</h2>
-                {% endif %}
-                <div class="table-responsive">
-                    {% render_table cname_table 'inc/table.html' %}
-                </div>
+        </div>
+    {% endif %}
+    {% if cname_target_table %}
+        <div class="card">
+            {% if cname_target_table.rows|length == 1 %}
+                <h2 class="card-header">{% trans "CNAME Target" %}</h2>
+            {% else %}
+                <h2 class="card-header">{% trans "CNAME Targets" %}</h2>
+            {% endif %}
+            <div class="table-responsive">
+                {% render_table cname_target_table 'inc/table.html' %}
             </div>
-        {% endif %}
-        {% if not object.managed %}
+        </div>
+    {% elif cname_table %}
+        <div class="card">
+            {% if cname_table.rows|length == 1 %}
+                <h2 class="card-header">{% trans "CNAME" %}</h2>
+            {% else %}
+                <h2 class="card-header">{% trans "CNAMEs" %}</h2>
+            {% endif %}
+            <div class="table-responsive">
+                {% render_table cname_table 'inc/table.html' %}
+            </div>
+        </div>
+    {% endif %}
+    {% if not object.managed %}
         {% include 'inc/panels/custom_fields.html' %}
-        {% endif %}
+        {% include 'inc/panels/comments.html' %}
+        {% plugin_left_page object %}
+    {% endif %}
     </div>
     {% if not object.managed %}
-    <div class="col col-md-4">
-        {% include 'inc/panels/tags.html' %}
-    </div>
+        <div class="col col-md-4">
+            {% include 'inc/panels/tags.html' %}
+        </div>
+        {% plugin_right_page object %}
     {% endif %}
 </div>
-
+<div class="row">
+    <div class="col col-md-12">
+        {% plugin_full_width_page object %}
+    </div>
+</div>
 {% endblock %}

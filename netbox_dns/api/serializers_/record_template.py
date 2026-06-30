@@ -1,43 +1,34 @@
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
-from netbox.api.serializers import NetBoxModelSerializer
+from netbox.api.serializers import PrimaryModelSerializer
+from netbox_dns.models import RecordTemplate
 from tenancy.api.serializers import TenantSerializer
 
-from netbox_dns.models import RecordTemplate
-
+from ..field_serializers import TimePeriodField
 from ..nested_serializers import NestedZoneTemplateSerializer
-
 
 __all__ = ("RecordTemplateSerializer",)
 
 
-class RecordTemplateSerializer(NetBoxModelSerializer):
-    url = serializers.HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_dns-api:recordtemplate-detail"
-    )
-    tenant = TenantSerializer(nested=True, required=False, allow_null=True)
-    zone_templates = NestedZoneTemplateSerializer(
-        many=True,
-        read_only=True,
-        required=False,
-        help_text=_("Zone templates using the record template"),
-    )
-
+class RecordTemplateSerializer(PrimaryModelSerializer):
     class Meta:
         model = RecordTemplate
+
         fields = (
             "id",
             "url",
             "display",
+            "display_url",
             "type",
             "name",
+            "description",
+            "comments",
+            "tags",
             "record_name",
             "value",
             "status",
             "ttl",
-            "description",
-            "tags",
             "created",
             "last_updated",
             "disable_ptr",
@@ -45,6 +36,7 @@ class RecordTemplateSerializer(NetBoxModelSerializer):
             "tenant",
             "zone_templates",
         )
+
         brief_fields = (
             "id",
             "url",
@@ -57,3 +49,22 @@ class RecordTemplateSerializer(NetBoxModelSerializer):
             "ttl",
             "description",
         )
+
+    url = serializers.HyperlinkedIdentityField(
+        view_name="plugins-api:netbox_dns-api:recordtemplate-detail"
+    )
+    ttl = TimePeriodField(
+        required=False,
+        allow_null=True,
+    )
+    tenant = TenantSerializer(
+        nested=True,
+        required=False,
+        allow_null=True,
+    )
+    zone_templates = NestedZoneTemplateSerializer(
+        many=True,
+        read_only=True,
+        required=False,
+        help_text=_("Zone templates using the record template"),
+    )

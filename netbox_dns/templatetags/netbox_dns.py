@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from django import template
 
@@ -7,4 +7,4 @@ register = template.Library()
 
 @register.filter(name="epoch_to_utc")
 def epoch_to_utc(epoch):
-    return datetime.fromtimestamp(epoch, tz=timezone.utc)
+    return datetime.fromtimestamp(epoch, tz=UTC)

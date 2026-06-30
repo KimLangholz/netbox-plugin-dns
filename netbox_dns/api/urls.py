@@ -1,16 +1,17 @@
 from netbox.api.routers import NetBoxRouter
-
 from netbox_dns.api.views import (
-    NetBoxDNSRootView,
-    ViewViewSet,
-    ZoneViewSet,
+    DNSSECKeyTemplateViewSet,
+    DNSSECPolicyViewSet,
     NameServerViewSet,
+    NetBoxDNSRootView,
+    PrefixViewSet,
+    RecordTemplateViewSet,
     RecordViewSet,
     RegistrarViewSet,
     RegistrationContactViewSet,
+    ViewViewSet,
     ZoneTemplateViewSet,
-    RecordTemplateViewSet,
-    PrefixViewSet,
+    ZoneViewSet,
 )
 
 router = NetBoxRouter()
@@ -24,6 +25,8 @@ router.register("registrars", RegistrarViewSet)
 router.register("contacts", RegistrationContactViewSet)
 router.register("zonetemplates", ZoneTemplateViewSet)
 router.register("recordtemplates", RecordTemplateViewSet)
+router.register("dnsseckeytemplates", DNSSECKeyTemplateViewSet)
+router.register("dnssecpolicies", DNSSECPolicyViewSet)
 
 router.register("prefixes", PrefixViewSet)
 

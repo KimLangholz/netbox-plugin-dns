@@ -1,17 +1,16 @@
 import django_tables2 as tables
-
 from django.conf import settings
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 
-from netbox.plugins.utils import get_plugin_config
-from netbox.plugins import PluginTemplateExtension
-from utilities.tables import register_table_column
 from ipam.tables import IPAddressTable
-
-from netbox_dns.models import Record
+from netbox.plugins import PluginTemplateExtension
+from netbox.plugins.utils import get_plugin_config
 from netbox_dns.choices import RecordTypeChoices
+from netbox_dns.models import Record
 from netbox_dns.tables import RelatedRecordTable, RelatedViewTable
 from netbox_dns.utilities import get_views_by_prefix
+from utilities.tables import register_table_column
 
 
 class RelatedDNSRecords(PluginTemplateExtension):
@@ -19,6 +18,7 @@ class RelatedDNSRecords(PluginTemplateExtension):
 
     def right_page(self):
         ip_address = self.context.get("object")
+        request = self.context.get("request")
 
         address_records = ip_address.netbox_dns_records.all()
         pointer_records = [
@@ -31,6 +31,7 @@ class RelatedDNSRecords(PluginTemplateExtension):
             address_record_table = RelatedRecordTable(
                 data=address_records,
             )
+            address_record_table.configure(request)
         else:
             address_record_table = None
 
@@ -38,14 +39,25 @@ class RelatedDNSRecords(PluginTemplateExtension):
             pointer_record_table = RelatedRecordTable(
                 data=pointer_records,
             )
+            pointer_record_table.configure(request)
         else:
             pointer_record_table = None
 
         return self.render(
             "netbox_dns/record/related.html",
             extra_context={
-                "related_address_records": address_record_table,
-                "related_pointer_records": pointer_record_table,
+                "address_card_title": (
+                    _("Synchronized Address Records")
+                    if len(address_records) > 1
+                    else _("Synchronized Address Record")
+                ),
+                "address_record_table": address_record_table,
+                "pointer_card_title": (
+                    _("Synchronized Pointer Records")
+                    if len(pointer_records) > 1
+                    else _("Synchronized Pointer Record")
+                ),
+                "pointer_record_table": pointer_record_table,
             },
         )
 
@@ -55,11 +67,16 @@ class RelatedDNSViews(PluginTemplateExtension):
 
     def right_page(self):
         prefix = self.context.get("object")
+        request = self.context.get("request")
 
         if assigned_views := prefix.netbox_dns_views.all():
-            context = {"assigned_views": RelatedViewTable(data=assigned_views)}
+            assigned_views_table = RelatedViewTable(data=assigned_views)
+            assigned_views_table.configure(request)
+            context = {"assigned_views": assigned_views_table}
         elif inherited_views := get_views_by_prefix(prefix):
-            context = {"inherited_views": RelatedViewTable(data=inherited_views)}
+            inherited_views_table = RelatedViewTable(data=inherited_views)
+            inherited_views_table.configure(request)
+            context = {"inherited_views": inherited_views_table}
         else:
             context = {}
 
@@ -85,20 +102,22 @@ class IPRelatedDNSRecords(PluginTemplateExtension):
 
     def right_page(self):
         ip_address = self.context.get("object")
+        request = self.context.get("request")
 
         address_records = Record.objects.filter(
             type__in=(RecordTypeChoices.A, RecordTypeChoices.AAAA),
             ip_address=ip_address.address.ip,
-        )
+        ).exclude(ipam_ip_address=ip_address)
         pointer_records = Record.objects.filter(
             type=RecordTypeChoices.PTR,
             ip_address=ip_address.address.ip,
-        )
+        ).exclude(address_records__ipam_ip_address__in=[ip_address])
 
         if address_records:
             address_record_table = RelatedRecordTable(
                 data=address_records,
             )
+            address_record_table.configure(request)
         else:
             address_record_table = None
 
@@ -106,20 +125,31 @@ class IPRelatedDNSRecords(PluginTemplateExtension):
             pointer_record_table = RelatedRecordTable(
                 data=pointer_records,
             )
+            pointer_record_table.configure(request)
         else:
             pointer_record_table = None
 
         return self.render(
             "netbox_dns/record/related.html",
             extra_context={
-                "related_address_records": address_record_table,
-                "related_pointer_records": pointer_record_table,
+                "address_card_title": (
+                    _("Related Address Records")
+                    if len(address_records) > 1
+                    else _("Related Address Record")
+                ),
+                "address_record_table": address_record_table,
+                "pointer_card_title": (
+                    _("Related Pointer Records")
+                    if len(pointer_records) > 1
+                    else _("Related Pointer Record")
+                ),
+                "pointer_record_table": pointer_record_table,
             },
         )
 
 
 address_records = tables.ManyToManyColumn(
-    verbose_name="DNS Address Records",
+    verbose_name=_("DNS Address Records"),
     accessor="netbox_dns_records",
     linkify_item=True,
     transform=lambda obj: (

@@ -1,10 +1,9 @@
+from django.db.models import ProtectedError
+from django.test import TestCase
 from dns import rdata
 
-from django.test import TestCase
-from django.db.models import ProtectedError
-
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices, ZoneStatusChoices
 from netbox_dns.models import NameServer, Record, Zone
-from netbox_dns.choices import RecordTypeChoices, ZoneStatusChoices, RecordStatusChoices
 
 
 class ZoneAutoNSTestCase(TestCase):
@@ -97,7 +96,7 @@ class ZoneAutoNSTestCase(TestCase):
         ns_record = Record.objects.create(
             zone=ns_zone,
             name="ns1",
-            type="A",
+            type=RecordTypeChoices.A,
             value="10.0.0.23",
             ttl=86400,
         )
@@ -118,7 +117,7 @@ class ZoneAutoNSTestCase(TestCase):
         ns_record = Record.objects.create(
             zone=ns_zone,
             name="ns1",
-            type="A",
+            type=RecordTypeChoices.A,
             value="10.0.0.23",
             ttl=86400,
             status=RecordStatusChoices.STATUS_INACTIVE,

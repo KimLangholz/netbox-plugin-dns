@@ -1,37 +1,38 @@
 import django_filters
 from django.db.models import Q
-from django.utils.translation import gettext as _
 
-from netbox.filtersets import NetBoxModelFilterSet
-from tenancy.filtersets import TenancyFilterSet
-
+from netbox.filtersets import PrimaryModelFilterSet
 from netbox_dns.models import NameServer, Zone
-
+from tenancy.filtersets import TenancyFilterSet
+from utilities.filtersets import register_filterset
 
 __all__ = ("NameServerFilterSet",)
 
 
-class NameServerFilterSet(TenancyFilterSet, NetBoxModelFilterSet):
+@register_filterset
+class NameServerFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
+    class Meta:
+        model = NameServer
+
+        fields = (
+            "id",
+            "name",
+            "description",
+        )
+
     zone_id = django_filters.ModelMultipleChoiceFilter(
         field_name="zones",
         queryset=Zone.objects.all(),
-        to_field_name="id",
-        label=_("Zones"),
     )
     soa_zone_id = django_filters.ModelMultipleChoiceFilter(
         method="filter_soa_zones",
         queryset=Zone.objects.all(),
-        label=_("SOA Zones"),
     )
-
-    class Meta:
-        model = NameServer
-        fields = ("id", "name", "description")
 
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
-        qs_filter = Q(name__icontains=value)
+        qs_filter = Q(Q(name__icontains=value) | Q(description__icontains=value))
         return queryset.filter(qs_filter)
 
     def filter_soa_zones(self, queryset, name, value):

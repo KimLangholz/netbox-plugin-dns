@@ -1,27 +1,24 @@
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 from dns import name as dns_name
 
-from django.utils.translation import gettext_lazy as _
-
 from netbox.views import generic
-from utilities.views import register_model_view
-from tenancy.views import ObjectContactsView
-
+from netbox_dns.choices import RecordTypeChoices
 from netbox_dns.filtersets import RecordFilterSet
 from netbox_dns.forms import (
-    RecordImportForm,
+    RecordBulkEditForm,
     RecordFilterForm,
     RecordForm,
-    RecordBulkEditForm,
+    RecordImportForm,
 )
-from netbox_dns.models import Record, Zone
-from netbox_dns.choices import RecordTypeChoices
-from netbox_dns.tables import RecordTable, ManagedRecordTable, RelatedRecordTable
+from netbox_dns.models import Record
+from netbox_dns.tables import ManagedRecordTable, RecordTable, RelatedRecordTable
 from netbox_dns.utilities import (
-    value_to_unicode,
     get_parent_zone_names,
     regex_from_list,
+    value_to_unicode,
 )
-
+from utilities.views import register_model_view
 
 __all__ = (
     "RecordView",
@@ -52,7 +49,7 @@ class RecordListView(generic.ObjectListView):
 @register_model_view(Record, "list_managed", path="managed", detail=False)
 class ManagedRecordListView(generic.ObjectListView):
     queryset = Record.objects.filter(managed=True).prefetch_related(
-        "ipam_ip_address", "address_record"
+        "ipam_ip_address", "address_records"
     )
     filterset = RecordFilterSet
     filterset_form = RecordFilterForm
@@ -69,7 +66,9 @@ class RecordView(generic.ObjectView):
         value_fqdn = dns_name.from_text(instance.value_fqdn)
 
         cname_targets = Record.objects.filter(
-            zone__view=instance.zone.view, fqdn=value_fqdn
+            zone__view=instance.zone.view,
+            fqdn=value_fqdn,
+            active=True,
         )
 
         if cname_targets:
@@ -99,6 +98,7 @@ class RecordView(generic.ObjectView):
                 zone__view=instance.zone.view,
                 value=instance.fqdn,
                 type=RecordTypeChoices.CNAME,
+                active=True,
             )
         )
 
@@ -113,6 +113,7 @@ class RecordView(generic.ObjectView):
                 zone__view=instance.zone.view,
                 type=RecordTypeChoices.CNAME,
                 zone=parent_zone,
+                active=True,
             )
             cname_records = cname_records.union(
                 {
@@ -142,31 +143,42 @@ class RecordView(generic.ObjectView):
 
         if instance.type == RecordTypeChoices.CNAME:
             try:
-                context["cname_target_table"] = self.get_value_records(instance)
+                cname_target_table = self.get_value_records(instance)
+                if cname_target_table is not None:
+                    cname_target_table.configure(request)
+                context["cname_target_table"] = cname_target_table
             except CNAMEWarning as exc:
                 context["cname_warning"] = str(exc)
         else:
-            context["cname_table"] = self.get_cname_records(instance)
+            cname_table = self.get_cname_records(instance)
+            if cname_table is not None:
+                cname_table.configure(request)
+            context["cname_table"] = cname_table
+
+        if instance.ipam_ip_address is not None:
+            context["ipam_ip_address"] = instance.ipam_ip_address
+        elif instance.address_records is not None:
+            address_record = instance.address_records.filter(
+                ipam_ip_address__isnull=False
+            ).first()
+            if address_record is not None:
+                context["ipam_ip_address"] = address_record.ipam_ip_address
+
+        if instance.rrset.count() > 1:
+            rrset_record_table = RelatedRecordTable(
+                data=instance.rrset.exclude(pk=instance.pk)
+            )
+            rrset_record_table.configure(request)
+
+            context["rrset_record_table"] = rrset_record_table
 
         if not instance.managed:
-            name = dns_name.from_text(instance.name, origin=None)
-
-            if not instance.is_delegation_record:
-                fqdn = dns_name.from_text(instance.fqdn)
-
-                if Zone.objects.filter(
-                    active=True,
-                    name__iregex=regex_from_list(
-                        get_parent_zone_names(
-                            instance.fqdn,
-                            min_labels=len(fqdn) - len(name),
-                            include_self=True,
-                        )
-                    ),
-                ).exists():
-                    context["mask_warning"] = _(
-                        "Record is masked by a child zone and may not be visible in DNS"
-                    )
+            try:
+                instance.check_zone_cut_conflict()
+            except ValidationError:
+                context["mask_warning"] = _(
+                    "Record is masked by a child zone and may not be visible in DNS"
+                )
 
         return context
 
@@ -178,13 +190,11 @@ class RecordEditView(generic.ObjectEditView):
         "zone", "ptr_record"
     )
     form = RecordForm
-    default_return_url = "plugins:netbox_dns:record_list"
 
 
 @register_model_view(Record, "delete")
 class RecordDeleteView(generic.ObjectDeleteView):
     queryset = Record.objects.filter(managed=False)
-    default_return_url = "plugins:netbox_dns:record_list"
 
 
 @register_model_view(Record, "bulk_import", detail=False)
@@ -194,7 +204,6 @@ class RecordBulkImportView(generic.BulkImportView):
     )
     model_form = RecordImportForm
     table = RecordTable
-    default_return_url = "plugins:netbox_dns:record_list"
 
 
 @register_model_view(Record, "bulk_edit", path="edit", detail=False)
@@ -210,8 +219,3 @@ class RecordBulkDeleteView(generic.BulkDeleteView):
     queryset = Record.objects.filter(managed=False)
     filterset = RecordFilterSet
     table = RecordTable
-
-
-@register_model_view(Record, "contacts")
-class RecordContactsView(ObjectContactsView):
-    queryset = Record.objects.all()

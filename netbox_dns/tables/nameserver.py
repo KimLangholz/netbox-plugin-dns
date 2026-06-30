@@ -1,16 +1,24 @@
 import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
-from netbox.tables import NetBoxTable, TagColumn
-from tenancy.tables import TenancyColumnsMixin
-
+from netbox.tables import PrimaryModelTable, TagColumn
 from netbox_dns.models import NameServer
-
+from tenancy.tables import TenancyColumnsMixin
 
 __all__ = ("NameServerTable",)
 
 
-class NameServerTable(TenancyColumnsMixin, NetBoxTable):
+class NameServerTable(TenancyColumnsMixin, PrimaryModelTable):
+    class Meta(PrimaryModelTable.Meta):
+        model = NameServer
+
+        fields = ("description",)
+
+        default_columns = (
+            "name",
+            "tags",
+        )
+
     name = tables.Column(
         verbose_name=_("Name"),
         linkify=True,
@@ -21,11 +29,3 @@ class NameServerTable(TenancyColumnsMixin, NetBoxTable):
 
     def render_name(self, value, record):
         return record.display_name
-
-    class Meta(NetBoxTable.Meta):
-        model = NameServer
-        fields = ("description",)
-        default_columns = (
-            "name",
-            "tags",
-        )

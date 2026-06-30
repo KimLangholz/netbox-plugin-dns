@@ -1,12 +1,17 @@
 from django.test import TestCase
 
+from netbox_dns.choices import ZoneEPPStatusChoices, ZoneStatusChoices
+from netbox_dns.filtersets import ZoneFilterSet
+from netbox_dns.models import (
+    DNSSECPolicy,
+    NameServer,
+    Registrar,
+    RegistrationContact,
+    View,
+    Zone,
+)
 from tenancy.models import Tenant, TenantGroup
 from utilities.testing import ChangeLoggedFilterSetTests
-
-from netbox_dns.models import Zone, View, NameServer, Registrar, RegistrationContact
-from netbox_dns.choices import ZoneStatusChoices
-
-from netbox_dns.filtersets import ZoneFilterSet
 
 
 class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
@@ -57,13 +62,26 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         )
         RegistrationContact.objects.bulk_create(cls.contacts)
 
+        cls.dnssec_policies = (
+            DNSSECPolicy(name="Test Policy 1", inline_signing=True),
+            DNSSECPolicy(name="Test Policy 2", inline_signing=True),
+            DNSSECPolicy(name="Test Policy 3", inline_signing=False),
+        )
+        DNSSECPolicy.objects.bulk_create(cls.dnssec_policies)
+
         cls.zones = (
             Zone(
                 name="zone1.example.com",
+                description="Test Zone 1",
                 view=cls.views[0],
                 tenant=cls.tenants[0],
+                soa_ttl=86400,
                 soa_mname=cls.nameservers[0],
                 soa_rname="hostmaster.example.com",
+                soa_refresh=43200,
+                soa_retry=7200,
+                soa_expire=2419200,
+                soa_minimum=3600,
                 soa_serial_auto=True,
                 registry_domain_id="acme-001-4242",
                 registrar=cls.registrars[0],
@@ -71,13 +89,23 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 tech_c=cls.contacts[0],
                 admin_c=cls.contacts[0],
                 billing_c=cls.contacts[0],
+                dnssec_policy=cls.dnssec_policies[0],
+                parental_agents=["10.0.0.42", "2001:db8:dead:beef::23"],
+                expiration_date="2025-04-01",
+                domain_status=ZoneEPPStatusChoices.EPP_STATUS_CLIENT_TRANSFER_PROHIBITED,
             ),
             Zone(
                 name="zone2.example.com",
+                description="Test Zone 2",
                 view=cls.views[0],
                 tenant=cls.tenants[1],
+                soa_ttl=86400,
                 soa_mname=cls.nameservers[1],
                 soa_rname="hostmaster.example.com",
+                soa_refresh=43200,
+                soa_retry=7200,
+                soa_expire=2419200,
+                soa_minimum=3600,
                 soa_serial_auto=True,
                 status=ZoneStatusChoices.STATUS_DEPRECATED,
                 registry_domain_id="acme-001-2323",
@@ -86,13 +114,20 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 tech_c=cls.contacts[1],
                 admin_c=cls.contacts[1],
                 billing_c=cls.contacts[1],
+                dnssec_policy=cls.dnssec_policies[0],
             ),
             Zone(
                 name="zone3.example.com",
+                description="Test Zone 3",
                 view=cls.views[0],
                 tenant=cls.tenants[2],
+                soa_ttl=86400,
                 soa_mname=cls.nameservers[2],
                 soa_rname="hostmaster2.example.com",
+                soa_refresh=43200,
+                soa_retry=7200,
+                soa_expire=2419200,
+                soa_minimum=3600,
                 soa_serial_auto=True,
                 registry_domain_id="acme-002-2323",
                 registrar=cls.registrars[1],
@@ -100,13 +135,23 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 tech_c=cls.contacts[1],
                 admin_c=cls.contacts[1],
                 billing_c=cls.contacts[1],
+                dnssec_policy=cls.dnssec_policies[1],
+                parental_agents=["10.0.0.23", "2001:db8:dead:beef::42"],
+                expiration_date="2026-04-01",
+                domain_status=ZoneEPPStatusChoices.EPP_STATUS_CLIENT_TRANSFER_PROHIBITED,
             ),
             Zone(
                 name="zone1.example.com",
+                description="Test Zone 4",
                 view=cls.views[1],
                 tenant=cls.tenants[0],
+                soa_ttl=43200,
                 soa_mname=cls.nameservers[0],
                 soa_rname="hostmaster2.example.com",
+                soa_refresh=86400,
+                soa_retry=3600,
+                soa_expire=432000,
+                soa_minimum=7200,
                 soa_serial_auto=False,
                 registry_domain_id="acme-002-4242",
                 registrar=cls.registrars[1],
@@ -114,13 +159,19 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 tech_c=cls.contacts[1],
                 admin_c=cls.contacts[1],
                 billing_c=cls.contacts[1],
+                dnssec_policy=cls.dnssec_policies[1],
             ),
             Zone(
                 name="zone2.example.com",
                 view=cls.views[1],
                 tenant=cls.tenants[1],
+                soa_ttl=43200,
                 soa_mname=cls.nameservers[1],
                 soa_rname="hostmaster2.example.com",
+                soa_refresh=86400,
+                soa_retry=3600,
+                soa_expire=432000,
+                soa_minimum=7200,
                 soa_serial_auto=False,
                 registry_domain_id="acme-003-4223",
                 registrar=cls.registrars[2],
@@ -128,13 +179,22 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 tech_c=cls.contacts[2],
                 admin_c=cls.contacts[2],
                 billing_c=cls.contacts[2],
+                dnssec_policy=cls.dnssec_policies[2],
+                parental_agents=["10.0.0.42", "2001:db8:dead:beef::42"],
+                expiration_date="2025-04-01",
+                domain_status=ZoneEPPStatusChoices.EPP_STATUS_INACTIVE,
             ),
             Zone(
                 name="zone3.example.com",
                 view=cls.views[1],
                 tenant=cls.tenants[2],
+                soa_ttl=43200,
                 soa_mname=cls.nameservers[2],
                 soa_rname="hostmaster2.example.com",
+                soa_refresh=86400,
+                soa_retry=3600,
+                soa_expire=432000,
+                soa_minimum=7200,
                 soa_serial_auto=False,
                 registry_domain_id="acme-003-2342",
                 registrar=cls.registrars[0],
@@ -142,36 +202,59 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 tech_c=cls.contacts[2],
                 admin_c=cls.contacts[2],
                 billing_c=cls.contacts[2],
+                dnssec_policy=cls.dnssec_policies[2],
+                expiration_date="2026-04-01",
+                domain_status=ZoneEPPStatusChoices.EPP_STATUS_INACTIVE,
             ),
             Zone(
                 name="0.0.10.in-addr.arpa",
                 view=cls.views[1],
                 tenant=cls.tenants[2],
+                soa_ttl=43200,
                 soa_mname=cls.nameservers[2],
                 soa_rname="hostmaster.example.com",
+                soa_refresh=86400,
+                soa_retry=3600,
+                soa_expire=432000,
+                soa_minimum=7200,
                 soa_serial_auto=True,
             ),
             Zone(
                 name="1.0.10.in-addr.arpa",
                 view=cls.views[1],
                 tenant=cls.tenants[2],
+                soa_ttl=43200,
                 soa_mname=cls.nameservers[2],
                 soa_rname="hostmaster.example.com",
+                soa_refresh=86400,
+                soa_retry=3600,
+                soa_expire=432000,
+                soa_minimum=7200,
                 soa_serial_auto=True,
             ),
             Zone(
                 name="0-31.0.0.10.in-addr.arpa",
                 view=cls.views[1],
+                soa_ttl=43200,
                 soa_mname=cls.nameservers[2],
                 soa_rname="hostmaster.example.com",
+                soa_refresh=86400,
+                soa_retry=3600,
+                soa_expire=432000,
+                soa_minimum=7200,
                 soa_serial_auto=False,
                 rfc2317_prefix="10.0.0.0/27",
                 rfc2317_parent_managed=True,
             ),
             Zone(
                 name="32-63.0.0.10.in-addr.arpa",
+                soa_ttl=43200,
                 soa_mname=cls.nameservers[2],
                 soa_rname="hostmaster.example.com",
+                soa_refresh=86400,
+                soa_retry=3600,
+                soa_expire=432000,
+                soa_minimum=7200,
                 soa_serial_auto=False,
                 rfc2317_prefix="10.0.0.32/27",
             ),
@@ -179,24 +262,39 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
                 name="0.10.in-addr.arpa",
                 view=cls.views[1],
                 tenant=cls.tenants[2],
+                soa_ttl=43200,
                 soa_mname=cls.nameservers[2],
                 soa_rname="hostmaster.example.com",
+                soa_refresh=86400,
+                soa_retry=3600,
+                soa_expire=432000,
+                soa_minimum=7200,
                 soa_serial_auto=False,
             ),
             Zone(
                 name="f.e.e.b.d.a.e.d.0.8.e.f.ip6.arpa",
                 view=cls.views[1],
                 tenant=cls.tenants[2],
+                soa_ttl=43200,
                 soa_mname=cls.nameservers[2],
                 soa_rname="hostmaster.example.com",
+                soa_refresh=86400,
+                soa_retry=3600,
+                soa_expire=432000,
+                soa_minimum=7200,
                 soa_serial_auto=False,
             ),
             Zone(
                 name="2.4.0.0.f.e.e.b.d.a.e.d.0.8.e.f.ip6.arpa",
                 view=cls.views[1],
                 tenant=cls.tenants[2],
+                soa_ttl=43200,
                 soa_mname=cls.nameservers[2],
                 soa_rname="hostmaster.example.com",
+                soa_refresh=86400,
+                soa_retry=3600,
+                soa_expire=432000,
+                soa_minimum=7200,
                 soa_serial_auto=False,
             ),
         )
@@ -206,11 +304,20 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
             cls.zones[i].nameservers.set([cls.nameservers[0].pk, cls.nameservers[1].pk])
         for i in range(3):
             cls.zones[3 + i].nameservers.set(
-                [cls.nameservers[1].pk, cls.nameservers[2].pk]
+                [
+                    cls.nameservers[1].pk,
+                    cls.nameservers[2].pk,
+                ]
             )
 
     def test_name(self):
         params = {"name": ["zone1.example.com", "zone2.example.com"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
+
+    def test_description(self):
+        params = {"description": ["Test Zone 1", "Test Zone 2", "Test Zone 3"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+        params = {"description__empty": False}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
 
     def test_view(self):
@@ -248,8 +355,40 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
     def test_soa_rname(self):
         params = {"soa_rname": ["hostmaster.example.com"]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 9)
-        params = {"soa_rname": ["hostmaster2.example.com"]}
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
+
+    def test_soa_serial(self):
+        params = {"soa_serial": [1]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 8)
+
+    def test_soa_ttl(self):
+        params = {"soa_ttl": 86400}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+        params = {"soa_ttl": "P1D"}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+
+    def test_soa_refresh(self):
+        params = {"soa_refresh": 86400}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 10)
+        params = {"soa_refresh__lt": "P1D"}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+
+    def test_soa_retry(self):
+        params = {"soa_retry": 7200}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+        params = {"soa_retry__lt": "PT2H"}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 10)
+
+    def test_soa_expire(self):
+        params = {"soa_expire": 432000}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 10)
+        params = {"soa_expire__gt": "P5D"}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+
+    def test_soa_minimum(self):
+        params = {"soa_minimum": "PT1H"}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 3)
+        params = {"soa_minimum__gt": 3600}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 10)
 
     def test_arpa_network(self):
         params = {"arpa_network": ["fe80:dead:beef::/48", "10.0.0.0/24"]}
@@ -289,9 +428,14 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
 
     def test_registry_domain_id(self):
         params = {
-            "registry_domain_id": ["acme-002-2323", "acme-003-4223", "acme-002-7654"]
+            "registry_domain_id": [
+                "acme-001-4242",
+                "acme-001-2323",
+                "acme-002-4242",
+                "acme-002-2323",
+            ]
         }
-        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
 
     def test_registrant(self):
         params = {"registrant": [self.contacts[1].contact_id]}
@@ -352,3 +496,50 @@ class ZoneFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 5)
         params = {"soa_serial_auto": False}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 8)
+
+    def test_dnssec_policy(self):
+        params = {
+            "dnssec_policy_id": [self.dnssec_policies[0].pk, self.dnssec_policies[1].pk]
+        }
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
+        params = {
+            "dnssec_policy": [
+                self.dnssec_policies[0].name,
+                self.dnssec_policies[1].name,
+            ]
+        }
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
+
+    def test_parental_agents(self):
+        params = {"parental_agents": ["10.0.0.42"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        params = {"parental_agents": ["10.0.0.23", "2001:db8:dead:beef::23"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_domain_status(self):
+        params = {
+            "domain_status": [
+                ZoneEPPStatusChoices.EPP_STATUS_CLIENT_TRANSFER_PROHIBITED
+            ]
+        }
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        params = {"domain_status": [ZoneEPPStatusChoices.EPP_STATUS_INACTIVE]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        params = {"domain_status": [ZoneEPPStatusChoices.EPP_STATUS_OK]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
+
+    def test_expiration_date(self):
+        params = {"expiration_date_before": "2025-06-01"}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        params = {"expiration_date_after": "2025-06-01"}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+        params = {"expiration_date_before": "2024-06-01"}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
+        params = {"expiration_date_after": "2026-06-01"}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 0)
+
+    def test_inline_signing(self):
+        params = {"inline_signing": True}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 4)
+        params = {"inline_signing": False}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 9)

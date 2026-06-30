@@ -1,9 +1,8 @@
 from django.test import TestCase
 
-from utilities.testing import ChangeLoggedFilterSetTests
-
-from netbox_dns.models import Registrar
 from netbox_dns.filtersets import RegistrarFilterSet
+from netbox_dns.models import Registrar
+from utilities.testing import ChangeLoggedFilterSetTests
 
 
 class RegistrarFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
@@ -15,6 +14,7 @@ class RegistrarFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         cls.registrars = (
             Registrar(
                 name="ACME 2 Corporation",
+                description="Test Registrar 1",
                 iana_id=4242,
                 referral_url="https://acme.com",
                 whois_server="whois.acme.com",
@@ -24,6 +24,7 @@ class RegistrarFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
             ),
             Registrar(
                 name="ACME 2 Limited",
+                description="Test Registrar 2",
                 iana_id=2323,
                 referral_url="https://acme.com",
                 whois_server="whois.acme.com",
@@ -33,6 +34,7 @@ class RegistrarFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
             ),
             Registrar(
                 name="ACME 2 Trust",
+                description="Test Registrar 3",
                 iana_id=55,
                 referral_url="https://acme.org",
                 whois_server="whois.acme.org",
@@ -45,6 +47,10 @@ class RegistrarFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
 
     def test_name(self):
         params = {"name": ["ACME 2 Corporation", "ACME 2 Trust"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_description(self):
+        params = {"description": ["Test Registrar 1", "Test Registrar 3"]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
     def test_iana_id(self):

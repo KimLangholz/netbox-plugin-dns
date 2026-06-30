@@ -1,6 +1,5 @@
 from netbox.models import NetBoxModel
 
-
 __all__ = ("ObjectModificationMixin",)
 
 
@@ -34,6 +33,8 @@ class ObjectModificationMixin:
         super().save(*args, **kwargs)
 
         self._save_field_values()
+
+    save.alters_data = True
 
     @property
     def changed_fields(self):

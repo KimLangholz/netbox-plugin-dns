@@ -2,18 +2,17 @@ import django_tables2 as tables
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-
 from netbox.tables import (
-    NetBoxTable,
-    ChoiceFieldColumn,
-    TagColumn,
     ActionsColumn,
+    BooleanColumn,
+    ChoiceFieldColumn,
+    PrimaryModelTable,
+    TagColumn,
+    TemplateColumn,
 )
-from tenancy.tables import TenancyColumnsMixin
-
 from netbox_dns.models import Record
 from netbox_dns.utilities import value_to_unicode
-
+from tenancy.tables import TenancyColumnsMixin
 
 __all__ = (
     "RecordTable",
@@ -23,7 +22,7 @@ __all__ = (
 )
 
 
-class RecordBaseTable(TenancyColumnsMixin, NetBoxTable):
+class RecordBaseTable(TenancyColumnsMixin, PrimaryModelTable):
     zone = tables.Column(
         verbose_name=_("Zone"),
         linkify=True,
@@ -44,11 +43,11 @@ class RecordBaseTable(TenancyColumnsMixin, NetBoxTable):
         verbose_name=_("FQDN"),
         linkify=True,
     )
-    value = tables.TemplateColumn(
+    value = TemplateColumn(
         verbose_name=_("Value"),
         template_code="{{ value|truncatechars:64 }}",
     )
-    unicode_value = tables.TemplateColumn(
+    unicode_value = TemplateColumn(
         verbose_name=_("Unicode Value"),
         template_code="{{ value|truncatechars:64 }}",
         accessor="value",
@@ -56,7 +55,7 @@ class RecordBaseTable(TenancyColumnsMixin, NetBoxTable):
     ttl = tables.Column(
         verbose_name=_("TTL"),
     )
-    active = tables.BooleanColumn(
+    active = BooleanColumn(
         verbose_name=_("Active"),
     )
 
@@ -68,26 +67,15 @@ class RecordBaseTable(TenancyColumnsMixin, NetBoxTable):
 
 
 class RecordTable(RecordBaseTable):
-    status = ChoiceFieldColumn(
-        verbose_name=_("Status"),
-    )
-    disable_ptr = tables.BooleanColumn(
-        verbose_name=_("Disable PTR"),
-    )
-    tags = TagColumn(
-        url_name="plugins:netbox_dns:record_list",
-    )
-    ptr_record = tables.Column(
-        verbose_name=_("PTR Record"),
-        linkify=True,
-    )
-
-    class Meta(NetBoxTable.Meta):
+    class Meta(PrimaryModelTable.Meta):
         model = Record
+
         fields = (
             "status",
             "description",
+            "expiration_date",
         )
+
         default_columns = (
             "name",
             "zone",
@@ -98,11 +86,45 @@ class RecordTable(RecordBaseTable):
             "active",
         )
 
+    status = ChoiceFieldColumn(
+        verbose_name=_("Status"),
+    )
+    disable_ptr = BooleanColumn(
+        verbose_name=_("Disable PTR"),
+    )
+    tags = TagColumn(
+        url_name="plugins:netbox_dns:record_list",
+    )
+    ptr_record = tables.Column(
+        verbose_name=_("PTR Record"),
+        linkify=True,
+    )
+
 
 class ManagedRecordTable(RecordBaseTable):
-    address_record = tables.Column(
-        verbose_name=_("Address Record"),
+    class Meta(PrimaryModelTable.Meta):
+        model = Record
+
+        fields = ()
+
+        default_columns = (
+            "name",
+            "zone",
+            "ttl",
+            "type",
+            "value",
+            "active",
+        )
+
+    address_records = tables.ManyToManyColumn(
+        verbose_name=_("Address Records"),
         linkify=True,
+        linkify_item=True,
+        transform=lambda obj: (
+            obj.fqdn.rstrip(".")
+            if obj.zone.view.default_view
+            else f"[{obj.zone.view.name}] {obj.fqdn.rstrip('.')}"
+        ),
     )
     ipam_ip_address = tables.Column(
         verbose_name=_("IPAM IP Address"),
@@ -115,27 +137,19 @@ class ManagedRecordTable(RecordBaseTable):
     )
     actions = ActionsColumn(actions=("changelog",))
 
-    class Meta(NetBoxTable.Meta):
-        model = Record
-        fields = ()
-        default_columns = (
-            "name",
-            "zone",
-            "ttl",
-            "type",
-            "value",
-            "active",
-        )
-
     def render_related_ip_address(self, record):
         if record.ipam_ip_address is not None:
             address = record.ipam_ip_address
-        elif (
-            hasattr(record, "address_record")
-            and record.address_record.ipam_ip_address is not None
-        ):
-            address = record.address_record.ipam_ip_address
-        else:
+        elif hasattr(record, "address_records"):
+            address_record = record.address_records.filter(
+                ipam_ip_address__isnull=False
+            ).first()
+            if address_record is not None:
+                address = address_record.ipam_ip_address
+            else:
+                address = None
+
+        if address is None:
             return format_html("&mdash;")
 
         return format_html(f"<a href='{address.get_absolute_url()}'>{address}</a>")
@@ -143,19 +157,23 @@ class ManagedRecordTable(RecordBaseTable):
     def value_related_ip_address(self, record):
         if record.ipam_ip_address is not None:
             return record.ipam_ip_address
-        elif (
-            hasattr(record, "address_record")
-            and record.address_record.ipam_ip_address is not None
-        ):
-            return record.address_record.ipam_ip_address
+
+        if hasattr(record, "address_records"):
+            address_record = record.address_records.filter(
+                ipam_ip_address__isnull=False
+            ).first()
+            if address_record is not None:
+                return address_record.ipam_ip_address
+
+        return None
 
 
 class RelatedRecordTable(RecordBaseTable):
-    actions = ActionsColumn(actions=())
-
-    class Meta(NetBoxTable.Meta):
+    class Meta(PrimaryModelTable.Meta):
         model = Record
+
         fields = ()
+
         default_columns = (
             "name",
             "zone",
@@ -163,11 +181,15 @@ class RelatedRecordTable(RecordBaseTable):
             "value",
         )
 
+    actions = ActionsColumn(actions=())
+
 
 class DelegationRecordTable(RecordBaseTable):
-    class Meta(NetBoxTable.Meta):
+    class Meta(PrimaryModelTable.Meta):
         model = Record
+
         fields = ()
+
         default_columns = (
             "name",
             "zone",

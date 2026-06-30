@@ -1,23 +1,20 @@
-from django.db import models
-from django.urls import reverse
 from django.core.exceptions import ValidationError
+from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from netbox.models import NetBoxModel
+from netbox.context import current_request
+from netbox.models import PrimaryModel
 from netbox.models.features import ContactsMixin
 from netbox.search import SearchIndex, register_search
-from netbox.context import current_request
-from utilities.exceptions import AbortRequest
-
 from netbox_dns.mixins import ObjectModificationMixin
 from netbox_dns.utilities import (
-    get_ip_addresses_by_view,
     check_dns_records,
-    update_dns_records,
     delete_dns_records,
+    get_ip_addresses_by_view,
     get_query_from_filter,
+    update_dns_records,
 )
-
+from utilities.exceptions import AbortRequest
 
 __all__ = (
     "View",
@@ -25,17 +22,27 @@ __all__ = (
 )
 
 
-class View(ObjectModificationMixin, ContactsMixin, NetBoxModel):
+class View(ObjectModificationMixin, ContactsMixin, PrimaryModel):
+    class Meta:
+        verbose_name = _("View")
+        verbose_name_plural = _("Views")
+
+        ordering = ("name",)
+
+    clone_fields = (
+        "name",
+        "description",
+        "tenant",
+    )
+
+    def __str__(self):
+        return str(self.name)
+
     name = models.CharField(
         verbose_name=_("Name"),
         unique=True,
         max_length=255,
         db_collation="natural_sort",
-    )
-    description = models.CharField(
-        verbose_name=_("Description"),
-        max_length=200,
-        blank=True,
     )
     default_view = models.BooleanField(
         verbose_name=_("Default View"),
@@ -61,37 +68,9 @@ class View(ObjectModificationMixin, ContactsMixin, NetBoxModel):
         null=True,
     )
 
-    clone_fields = (
-        "name",
-        "description",
-        "tenant",
-    )
-
     @classmethod
     def get_default_view(cls):
         return cls.objects.get(default_view=True)
-
-    # TODO: Remove in version 1.3.0 (NetBox #18555)
-    def get_absolute_url(self):
-        return reverse("plugins:netbox_dns:view", kwargs={"pk": self.pk})
-
-    def __str__(self):
-        return str(self.name)
-
-    class Meta:
-        verbose_name = _("View")
-        verbose_name_plural = _("Views")
-
-        ordering = ("name",)
-
-    def delete(self, *args, **kwargs):
-        if self.default_view:
-            if current_request.get() is not None:
-                raise AbortRequest(_("The default view cannot be deleted"))
-
-            raise ValidationError(_("The default view cannot be deleted"))
-
-        super().delete(*args, **kwargs)
 
     def clean(self, *args, **kwargs):
         if (changed_fields := self.changed_fields) is None:
@@ -127,6 +106,8 @@ class View(ObjectModificationMixin, ContactsMixin, NetBoxModel):
 
         super().clean(*args, **kwargs)
 
+    clean.alters_data = True
+
     def save(self, *args, **kwargs):
         self.clean()
 
@@ -157,10 +138,20 @@ class View(ObjectModificationMixin, ContactsMixin, NetBoxModel):
             ):
                 update_dns_records(ip_address, view=self)
 
+    def delete(self, *args, **kwargs):
+        if self.default_view:
+            if current_request.get() is not None:
+                raise AbortRequest(_("The default view cannot be deleted"))
+
+            raise ValidationError(_("The default view cannot be deleted"))
+
+        super().delete(*args, **kwargs)
+
 
 @register_search
 class ViewIndex(SearchIndex):
     model = View
+
     fields = (
         ("name", 100),
         ("description", 500),

@@ -1,11 +1,9 @@
 import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
-from netbox.tables import NetBoxTable, TagColumn, ActionsColumn
-from tenancy.tables import TenancyColumnsMixin
-
+from netbox.tables import ActionsColumn, PrimaryModelTable, TagColumn
 from netbox_dns.models import ZoneTemplate
-
+from tenancy.tables import TenancyColumnsMixin
 
 __all__ = (
     "ZoneTemplateTable",
@@ -13,7 +11,20 @@ __all__ = (
 )
 
 
-class ZoneTemplateTable(TenancyColumnsMixin, NetBoxTable):
+class ZoneTemplateTable(TenancyColumnsMixin, PrimaryModelTable):
+    class Meta(PrimaryModelTable.Meta):
+        model = ZoneTemplate
+
+        fields = (
+            "soa_rname",
+            "description",
+        )
+
+        default_columns = (
+            "name",
+            "tags",
+        )
+
     name = tables.Column(
         verbose_name=_("Name"),
         linkify=True,
@@ -24,6 +35,10 @@ class ZoneTemplateTable(TenancyColumnsMixin, NetBoxTable):
     )
     tags = TagColumn(
         url_name="plugins:netbox_dns:zonetemplate_list",
+    )
+    dnssec_policy = tables.Column(
+        verbose_name=_("DNSSEC Policy"),
+        linkify=True,
     )
     registrar = tables.Column(
         verbose_name=_("Registrar"),
@@ -46,25 +61,16 @@ class ZoneTemplateTable(TenancyColumnsMixin, NetBoxTable):
         linkify=True,
     )
 
-    class Meta(NetBoxTable.Meta):
-        model = ZoneTemplate
-        fields = (
-            "soa_rname",
-            "description",
-        )
-        default_columns = (
-            "name",
-            "tags",
-        )
-
 
 class ZoneTemplateDisplayTable(ZoneTemplateTable):
-    actions = ActionsColumn(actions="")
-
-    class Meta(NetBoxTable.Meta):
+    class Meta(PrimaryModelTable.Meta):
         model = ZoneTemplate
+
         fields = ("description",)
+
         default_columns = (
             "name",
             "description",
         )
+
+    actions = ActionsColumn(actions="")

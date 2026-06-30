@@ -1,11 +1,10 @@
 from django.test import TestCase
 
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
+from netbox_dns.filtersets import RecordTemplateFilterSet
+from netbox_dns.models import RecordTemplate, ZoneTemplate
 from tenancy.models import Tenant, TenantGroup
 from utilities.testing import ChangeLoggedFilterSetTests
-
-from netbox_dns.models import RecordTemplate, ZoneTemplate
-from netbox_dns.choices import RecordTypeChoices, RecordStatusChoices
-from netbox_dns.filtersets import RecordTemplateFilterSet
 
 
 class RecordTemplateFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
@@ -32,6 +31,7 @@ class RecordTemplateFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
         cls.record_templates = (
             RecordTemplate(
                 name="Test Record Template 1",
+                description="Test Record Template 1",
                 record_name="name1",
                 type=RecordTypeChoices.AAAA,
                 value="fe80::dead:beef",
@@ -39,6 +39,7 @@ class RecordTemplateFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
             ),
             RecordTemplate(
                 name="Test Record Template 2",
+                description="Test Record Template 2",
                 record_name="name2",
                 type=RecordTypeChoices.A,
                 value="10.0.0.42",
@@ -47,6 +48,7 @@ class RecordTemplateFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
             ),
             RecordTemplate(
                 name="Test Record Template 3",
+                description="Test Record Template 3",
                 record_name="name3",
                 type=RecordTypeChoices.AAAA,
                 value="fe80::dead:beef",
@@ -54,6 +56,7 @@ class RecordTemplateFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
             ),
             RecordTemplate(
                 name="Test Record Template 4",
+                description="Test Record Template 4",
                 record_name="name1",
                 type=RecordTypeChoices.AAAA,
                 value="fe80::dead:beef",
@@ -62,6 +65,7 @@ class RecordTemplateFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
             ),
             RecordTemplate(
                 name="Test Record Template 5",
+                description="Test Record Template 5",
                 record_name="name2",
                 type=RecordTypeChoices.A,
                 value="10.0.0.42",
@@ -69,6 +73,7 @@ class RecordTemplateFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
             ),
             RecordTemplate(
                 name="Test Record Template 6",
+                description="Test Record Template 6",
                 record_name="name3",
                 type=RecordTypeChoices.AAAA,
                 value="fe80::dead:beef",
@@ -91,6 +96,10 @@ class RecordTemplateFilterSetTestCase(TestCase, ChangeLoggedFilterSetTests):
 
     def test_name(self):
         params = {"name": ["Test Record Template 1", "Test Record Template 3"]}
+        self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
+
+    def test_description(self):
+        params = {"description": ["Test Record Template 1", "Test Record Template 2"]}
         self.assertEqual(self.filterset(params, self.queryset).qs.count(), 2)
 
     def test_record_name(self):

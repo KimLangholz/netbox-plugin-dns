@@ -1,20 +1,17 @@
 import re
-
 from collections import defaultdict
-
-from dns import name as dns_name
 
 from django.conf import settings
 from django.db.models import Q
+from dns import name as dns_name
+from netaddr import IPNetwork
 
-from netbox.context import current_request
 from ipam.models import IPAddress, Prefix
+from netbox.context import current_request
+from netbox_dns.choices import RecordStatusChoices, RecordTypeChoices
 
-from netbox_dns.choices import RecordStatusChoices
-
-from .dns import get_parent_zone_names
 from .conversions import regex_from_list
-
+from .dns import get_parent_zone_names
 
 __all__ = (
     "get_zones",
@@ -27,13 +24,17 @@ __all__ = (
     "get_ip_addresses_by_zone",
     "check_record_permission",
     "get_query_from_filter",
+    "check_filter",
+    "get_cidr_address",
 )
 
 
 def _get_assigned_views(ip_address):
+    address = get_cidr_address(ip_address)
+
     longest_prefix = Prefix.objects.filter(
         vrf=ip_address.vrf,
-        prefix__net_contains_or_equals=str(ip_address.address.ip),
+        prefix__net_contains_or_equals=address,
         netbox_dns_views__isnull=False,
     ).last()
 
@@ -65,9 +66,11 @@ def _match_data(ip_address, record):
         "ipaddress_dns_record_disable_ptr"
     )
 
+    address = get_cidr_address(ip_address)
+
     return (
         record.fqdn.rstrip(".") == ip_address.dns_name.rstrip(".")
-        and record.value == str(ip_address.address.ip)
+        and record.value == str(address.ip)
         and record.status == _get_record_status(ip_address)
         and record.ttl == ip_address.custom_field_data.get("ipaddress_dns_record_ttl")
         and (cf_disable_ptr is None or record.disable_ptr == cf_disable_ptr)
@@ -116,7 +119,7 @@ def get_zones(ip_address, view=None, old_zone=None):
 
 
 def check_dns_records(ip_address, zone=None, view=None):
-    from netbox_dns.models import Zone, Record
+    from netbox_dns.models import Record, Zone
 
     if ip_address.dns_name == "":
         return
@@ -161,7 +164,7 @@ def check_dns_records(ip_address, zone=None, view=None):
 
 
 def update_dns_records(ip_address, view=None, force=False):
-    from netbox_dns.models import Zone, Record
+    from netbox_dns.models import Record, Zone
 
     updated = False
 
@@ -177,6 +180,8 @@ def update_dns_records(ip_address, view=None, force=False):
             address_records = ip_address.netbox_dns_records.filter(zone__view=view)
 
         for record in address_records:
+            record.snapshot()
+
             if record.zone not in zones or ip_address.custom_field_data.get(
                 "ipaddress_dns_disabled"
             ):
@@ -185,15 +190,14 @@ def update_dns_records(ip_address, view=None, force=False):
                 continue
 
             record.update_fqdn()
-            if not _match_data(ip_address, record) or force:
-                updated, deleted = record.update_from_ip_address(ip_address)
+            updated, deleted = record.update_from_ip_address(ip_address)
 
-                if deleted:
-                    record.delete()
-                    updated = True
-                elif updated:
-                    record.save()
-                    updated = True
+            if deleted:
+                record.delete()
+                updated = True
+            elif updated:
+                record.save()
+                updated = True
 
         zones = Zone.objects.filter(pk__in=[zone.pk for zone in zones]).exclude(
             pk__in=set(ip_address.netbox_dns_records.values_list("zone", flat=True))
@@ -213,10 +217,34 @@ def update_dns_records(ip_address, view=None, force=False):
 
 
 def delete_dns_records(ip_address, view=None):
-    if view is None:
+    from netbox_dns.models import Record
+
+    if current_request.get() is None:
         address_records = ip_address.netbox_dns_records.all()
     else:
-        address_records = ip_address.netbox_dns_records.filter(zone__view=view)
+        # +
+        # This is a dirty hack made necessary by NetBox grand idea of manipulating
+        # objects in its event handling code, removing references to related objects
+        # in pre_delete() before our pre_delete() handler has the chance to handle
+        # them.
+        #
+        # TODO: Find something better. This is really awful.
+        # -
+        address = get_cidr_address(ip_address)
+        address_records = Record.objects.filter(
+            Q(
+                Q(ipam_ip_address=ip_address)
+                | Q(
+                    type__in=(RecordTypeChoices.A, RecordTypeChoices.AAAA),
+                    managed=True,
+                    ip_address=address,
+                    ipam_ip_address__isnull=True,
+                )
+            ),
+        )
+
+    if view is not None:
+        address_records &= Record.objects.filter(zone__view=view)
 
     if not address_records.exists():
         return False
@@ -299,11 +327,9 @@ def get_ip_addresses_by_zone(zone):
     are the IPAddress objects in prefixes assigned to the same view, if the
     'dns_name' attribute of the IPAddress object ends in the zone's name.
     """
-    queryset = get_ip_addresses_by_view(zone.view).filter(
+    return get_ip_addresses_by_view(zone.view).filter(
         dns_name__regex=rf"\.{re.escape(zone.name)}\.?$"
     )
-
-    return queryset
 
 
 def check_record_permission(add=True, change=True, delete=True):
@@ -336,3 +362,24 @@ def get_query_from_filter(ip_address_filter):
             return Q()
 
     return query
+
+
+def check_filter(ip_address, ip_address_filter):
+    query = get_query_from_filter(ip_address_filter)
+    against = ip_address._get_field_expression_map(meta=IPAddress._meta)
+
+    return query.check(against)
+
+
+def get_cidr_address(ip_address):
+    # +
+    # Always return an IPNetwork object, regardless if the address field is a
+    # string or an IPNetwork object.
+    #
+    # This is required because an IPAddress may have a string in that field
+    # if it has not been retrieved from the database.
+    # -
+    if type(ip_address.address) is str:
+        return IPNetwork(ip_address.address)
+
+    return ip_address.address

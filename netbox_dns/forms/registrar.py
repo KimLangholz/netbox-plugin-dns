@@ -2,16 +2,14 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from netbox.forms import (
-    NetBoxModelBulkEditForm,
-    NetBoxModelFilterSetForm,
-    NetBoxModelImportForm,
-    NetBoxModelForm,
+    PrimaryModelBulkEditForm,
+    PrimaryModelFilterSetForm,
+    PrimaryModelForm,
+    PrimaryModelImportForm,
 )
+from netbox_dns.models import Registrar
 from utilities.forms.fields import TagFilterField
 from utilities.forms.rendering import FieldSet
-
-from netbox_dns.models import Registrar
-
 
 __all__ = (
     "RegistrarForm",
@@ -21,27 +19,16 @@ __all__ = (
 )
 
 
-class RegistrarForm(NetBoxModelForm):
+class RegistrarForm(PrimaryModelForm):
     class Meta:
         model = Registrar
-        fieldsets = (
-            FieldSet(
-                "name",
-                "iana_id",
-                "description",
-                "address",
-                "referral_url",
-                "whois_server",
-                "abuse_email",
-                "abuse_phone",
-                name=_("Registrar"),
-            ),
-            FieldSet("tags", name=_("Tags")),
-        )
+
         fields = (
             "name",
-            "iana_id",
             "description",
+            "owner",
+            "comments",
+            "iana_id",
             "address",
             "referral_url",
             "whois_server",
@@ -50,12 +37,45 @@ class RegistrarForm(NetBoxModelForm):
             "tags",
         )
 
-
-class RegistrarFilterForm(NetBoxModelFilterSetForm):
-    model = Registrar
     fieldsets = (
-        FieldSet("q", "filter_id", "tag"),
-        FieldSet("name", "iana_id", "description", name=_("Attributes")),
+        FieldSet(
+            "name",
+            "description",
+            "iana_id",
+            "address",
+            "referral_url",
+            "whois_server",
+            "abuse_email",
+            "abuse_phone",
+            name=_("Registrar"),
+        ),
+        FieldSet(
+            "tags",
+            name=_("Tags"),
+        ),
+    )
+
+
+class RegistrarFilterForm(PrimaryModelFilterSetForm):
+    model = Registrar
+
+    fieldsets = (
+        FieldSet(
+            "q",
+            "filter_id",
+            "tag",
+        ),
+        FieldSet(
+            "owner_group_id",
+            "owner_id",
+            name=_("Ownership"),
+        ),
+        FieldSet(
+            "name",
+            "description",
+            "iana_id",
+            name=_("Attributes"),
+        ),
         FieldSet(
             "address",
             "referral_url",
@@ -70,13 +90,13 @@ class RegistrarFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_("Name"),
     )
-    address = forms.CharField(
-        required=False,
-        label=_("Address"),
-    )
     description = forms.CharField(
         required=False,
         label=_("Description"),
+    )
+    address = forms.CharField(
+        required=False,
+        label=_("Address"),
     )
     iana_id = forms.IntegerField(
         required=False,
@@ -98,16 +118,19 @@ class RegistrarFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_("Abuse Phone"),
     )
-    tag = TagFilterField(Registrar)
+    tag = TagFilterField(model)
 
 
-class RegistrarImportForm(NetBoxModelImportForm):
+class RegistrarImportForm(PrimaryModelImportForm):
     class Meta:
         model = Registrar
+
         fields = (
             "name",
-            "iana_id",
             "description",
+            "owner",
+            "comments",
+            "iana_id",
             "address",
             "referral_url",
             "whois_server",
@@ -117,37 +140,8 @@ class RegistrarImportForm(NetBoxModelImportForm):
         )
 
 
-class RegistrarBulkEditForm(NetBoxModelBulkEditForm):
+class RegistrarBulkEditForm(PrimaryModelBulkEditForm):
     model = Registrar
-
-    iana_id = forms.IntegerField(
-        required=False,
-        label=_("IANA ID"),
-    )
-    description = forms.CharField(
-        required=False,
-        label=_("Description"),
-    )
-    address = forms.CharField(
-        required=False,
-        label=_("Address"),
-    )
-    referral_url = forms.CharField(
-        required=False,
-        label=_("Referral URL"),
-    )
-    whois_server = forms.CharField(
-        required=False,
-        label=_("WHOIS Server"),
-    )
-    abuse_email = forms.CharField(
-        required=False,
-        label=_("Abuse Email"),
-    )
-    abuse_phone = forms.CharField(
-        required=False,
-        label=_("Abuse Phone"),
-    )
 
     fieldsets = (
         FieldSet(
@@ -170,4 +164,29 @@ class RegistrarBulkEditForm(NetBoxModelBulkEditForm):
         "whois_server",
         "abuse_email",
         "abuse_phone",
+    )
+
+    iana_id = forms.IntegerField(
+        required=False,
+        label=_("IANA ID"),
+    )
+    address = forms.CharField(
+        required=False,
+        label=_("Address"),
+    )
+    referral_url = forms.CharField(
+        required=False,
+        label=_("Referral URL"),
+    )
+    whois_server = forms.CharField(
+        required=False,
+        label=_("WHOIS Server"),
+    )
+    abuse_email = forms.CharField(
+        required=False,
+        label=_("Abuse Email"),
+    )
+    abuse_phone = forms.CharField(
+        required=False,
+        label=_("Abuse Phone"),
     )
